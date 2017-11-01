@@ -7,11 +7,14 @@
 #' each sample to give the sampleMDP. The scores are summed for each gene
 #' in each class to give the geneMDP.
 #'
-#' @param data A data.frame of gene expression data with the first column contain gene symbols other columns headed with sample names
+#' @param data A data.frame of gene expression data with the first column containing gene symbols other columns headed with sample names and containg expression data
 #' @param pdata A data.frame of phenodata with a column headed Class and the other headed Sample
 #' @param control_lab A character vector of the name of the class that will be used as reference
 #' @param print Set as default to TRUE if you wish graph pdfs of the geneMDP and sampleMDP values to be printed
 #' @param directory The output directory (optional)
+#' @param pathways The location of a gmt file
+#' @param measure Set as default to "median", can be changed to "mean". This measure is used to compute the Z-score for the gene normalisation and also to designate samples as perturbed.
+#' @param std Set as default to 2. This controls the standard deviation threshold for the Z-score calculation. Normalised expression values less than "std" will be set to 0. This std value is used to compute the Z-score for the gene normalisation and also to designate samples as perturbed.
 #' @return A list where [[1]] $Zscore contains a table of Z scores, [[2]] $gMDP contains gMDP scores and [[3]] $sMDP are the sampleMDP scores
 #' @examples
 #' mdp(exp,pheno,"healthy_control",print=TRUE,directory="myexp")
@@ -28,21 +31,18 @@ mdp <- function(data,pdata,control_lab,directory="",pathways,print=TRUE,measure=
 
 # --------------- FUNCTIONS - CALCULATE Z SCORE AND CALCULATE CONTROL STATS --- ###
 
-  #' Calculate Z score
-
-
-  Z <- function(exp,health,n){
+  Z <- function(exp,health,std){
     # COMPUTE THE Z SCORE NORMALISED BY CONTROLS
     # exp <- column vector of expression values per sample, rows = genes
     # health <- mean of controls in first column, SD of controls in second column
     # n <- if Z is less than n standard deviations, set to NA
     z   <- (exp-health[,1])/health[,2]
-    z[abs(z)<n] <- 0 #SD > n
+    z[abs(z)<std] <- 0
 
     return(z)
   }
 
-  GetMeanSD <- function(xx,measure,std) {
+  GetMeanSD <- function(xx,measure) {
     controlData <- vector()
 
     xx <- as.numeric(xx)
@@ -56,7 +56,7 @@ mdp <- function(data,pdata,control_lab,directory="",pathways,print=TRUE,measure=
     }
 
 
-   sdX   <- sd(xx,na.rm=TRUE)*std
+   sdX   <- sd(xx,na.rm=TRUE)
 
   controlData <- as.numeric(c(meanX,sdX))
   names(controlData) <- c("Mean","sd")
@@ -74,10 +74,6 @@ mdp <- function(data,pdata,control_lab,directory="",pathways,print=TRUE,measure=
   # then plot 1 will go in the upper left, 2 will go in the upper right, and
   # 3 will go all the way across the bottom.
   #
-
-  #' Multiple plot function
-  #'
-  #' function to plot images on one plot
   multiplot <- function(..., plotlist=NULL, file, cols=1, layout=NULL) {
     library(grid)
 
@@ -123,25 +119,6 @@ new_progress <- function(n_steps, nth_step=0) {
 	})
 }
 
-#' Read gmt
-#'
-#' @param filename the path to your gene matrix transposed file format (*.gmt) file
-read.gmt <- function(fname){
-  res <- list(genes=list(),
-              desc=list())
-  gmt <- file(fname)
-  gmt.lines <- readLines(gmt)
-  close(gmt)
-  gmt.list <- lapply(gmt.lines,
-                     function(x) unlist(strsplit(x, split="\t")))
-  gmt.names <- sapply(gmt.list, '[', 1)
-  gmt.desc <- lapply(gmt.list, '[', 2)
-  gmt.genes <- lapply(gmt.list,
-                      function(x){x[3:length(x)]})
-  names(gmt.desc) <- names(gmt.genes) <- gmt.names
-  return(gmt.genes)
-}
-
 
 # ----------------------- LOAD GMT -------------------------------------------#######
 if (!missing(pathways)){
@@ -164,17 +141,33 @@ if (directory != ""){
 }
 
 # --------------------- ORGANISE DATA -------------------------------------#######
-
+if (missing(pdata)){
+  stop("Please include phenodata")
+}  else if (!("Sample" %in% names(pdata) && "Class" %in% names(pdata))){
+  stop("Please label phenodata columns as 'Sample' and 'Class'")
+} else if (sum(pdata$Sample %in% names(data)) == 0){
+  stop("Please provide phenodata sample names that match expression data columns")
+} else if  (sum(control_lab %in% pdata$Class) == 0){
+  stop("Please provide a control label that matches a class in the phenodata")
+} else if (sum(pdata$Class %in% control_lab) < 2){
+  stop("Please provide at least two control samples (around 10 is an ideal minimum)")
+}
+if (missing(data)){
+  stop("Please include expression data")
+} else if (!is.character(data[,1])){
+  stop("Please provide gene symbols in first column of expression data")
+} else if (length(unique(data[,1])) != length(data[,1])){
+  stop("Please provide unique gene symbols for the expression data")
+} else if (!all(apply(data[,2:ncol(data)],2,is.numeric))){
+  stop("Please provide numeric values in expression data columns")
+}
 
 pdata <- pdata[as.character(pdata$Sample) %in% colnames(data),]  # Only keep the samples that have both pdata and data
 rownames(pdata) <- pdata$Sample
 data <- cbind("Symbol" = data[,1],data[,as.character(pdata$Sample)])  # Expression data has c(1) and samples
 
-if (!missing(pathways)){
-progress <- new_progress(4)
-} else {
 progress <- new_progress(5)
-}
+
 
 # --------------- ORGANISE GROUPS AND CONTROLS FROM PHENO DATA -------------- ####
 nGroups <- length(unique(pdata$Class))
@@ -193,7 +186,7 @@ progress("Computing Z-score for contrast samples")
 
 data.vals <- as.matrix(data[,-c(1)])
 dataHealth <- t(apply(data.vals[,idx[[control_idx]]],1,function(x) {
-  GetMeanSD(as.numeric(x),measure,std)}))
+  GetMeanSD(as.numeric(x),measure)}))
 
 
 
@@ -208,20 +201,20 @@ Zscore <- matrix(nrow=nrow(data.vals), ncol=ncol(data.vals))
 rownames(Zscore) <- data$Symbol
 
 colnames(Zscore) <- names(data[,-c(1)])
-Zscore[,-idx[[control_idx]]] <- apply(data.vals[,-idx[[control_idx]]] ,2,function(x) Z(x,dataHealth,N))
+Zscore[,-idx[[control_idx]]] <- apply(data.vals[,-idx[[control_idx]]] ,2,function(x) Z(x,dataHealth,std))
 
 # Z score for controls using leave-one-out
 Zscore[,idx[[control_idx]]] <- sapply(1:length(idx[[control_idx]]), function(x) {
   # calculate mean using leave-one out
     dataHealthSubset.mean <- t(apply(data.vals[, idx[[control_idx]][-x]],1,function(j) {
-      GetMeanSD(as.numeric(j),measure,std)}))
+      GetMeanSD(as.numeric(j),measure)}))
   # calculate standard deviation using all of the control samples
     dataHealthSubset.sd <- t(apply(data.vals[, idx[[control_idx]]],1,function(j) {
-      GetMeanSD(as.numeric(j),measure,std)}))
+      GetMeanSD(as.numeric(j),measure)}))
 
     dataHealthSubset <- cbind(dataHealthSubset.mean[,1], dataHealthSubset.sd[,2])
 
-  return(Z(data.vals[,idx[[control_idx]][x]],dataHealthSubset,N))
+  return(Z(data.vals[,idx[[control_idx]][x]],dataHealthSubset,std))
 })
 
 
@@ -296,6 +289,7 @@ names(genesets)[1:2] <- c("allgenes","perturbedgenes")
 progress("Calculating sMDP scores")
 
 Zsamples.list <- data.frame()
+sMDP.list <- list()
 for(s in 1:length(genesets)){
   folder.path <- paste(path,names(genesets)[s],sep="/")
 
@@ -309,16 +303,16 @@ for(s in 1:length(genesets)){
   Zsamples.df <- data.frame("Sample" = names(Zsamples), "sMDP" = Zsamples, "Class" = pdata[names(Zsamples),"Class"], "Perturbed"  = "Unperturbed",stringsAsFactors=FALSE)
   Zsamples.list <- rbind(Zsamples.list,Zsamples.df$sMDP)
   # find mean and standard deviation of healthy samples
-  healthy.mean <- GetMeanSD(Zsamples[idx[[control_idx]]],measure,std)
+  healthy.mean <- GetMeanSD(Zsamples[idx[[control_idx]]],measure)
   Zsamples.df$Thresh <- rep(healthy.mean[1] + healthy.mean[[2]],length(Zsamples))
 
   # leave one out for healthy
-  leave.out.mean <- sapply(1:length(idx[[control_idx]]), function(x,y) (GetMeanSD(y[idx[[control_idx]][-x],"sMDP"],measure,std)), y=Zsamples.df)
+  leave.out.mean <- sapply(1:length(idx[[control_idx]]), function(x,y) (GetMeanSD(y[idx[[control_idx]][-x],"sMDP"],measure)), y=Zsamples.df)
   Zsamples.df[idx[[control_idx]],"Thresh"] <- leave.out.mean[1,] + healthy.mean[2]
 
   # mark perturbed samples
   Zsamples.df[Zsamples.df$sMDP >= Zsamples.df$Thresh,"Perturbed"] <- "Perturbed"
-
+  sMDP.list[[s]] <- Zsamples.df
 
 
 if (print == TRUE){
@@ -388,7 +382,7 @@ if (print == TRUE){
 }
 rownames(Zsamples.list) <- names(genesets)
 names(Zsamples.list) <- Zsamples.df$Sample
-
+names(sMDP.list) <- names(genesets)
 
 # --------------- PLOT: gMDP FOR ALL GENES and genesets--------------------####
 
@@ -443,7 +437,7 @@ for(g in 1:length(genesets)){
 # ------------------------- GENE SET ANALYSIS for pathways ------------ #####
 
 
-progress("Calculating sMDP ")
+progress("Ranking genesets")
 
  	# Calculate the number of genes in each pathway
 	geneNumber <- lapply(1:length(genesets), function(x) length(genesets[[x]]))
@@ -470,8 +464,8 @@ progress("Calculating sMDP ")
 
 
 # ---------------- OUTPUT ---------------- ####
-output <-list(Zscore.annotated,Zgroups.annotated,pathwayMDP.df)
-names(output) <- c("Zscore","gMDP","sMDP")
+output <-list(Zscore.annotated,Zgroups.annotated,sMDP.list,pathwayMDP.df)
+names(output) <- c("Zscore","gMDP","sMDP","pathways")
 
 
 

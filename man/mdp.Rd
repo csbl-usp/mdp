@@ -9,7 +9,7 @@ mdp(data, pdata, control_lab, directory = "", pathways, print = TRUE,
   measure = "median", std = 2)
 }
 \arguments{
-\item{data}{A data.frame of gene expression data with the first column contain gene symbols other columns headed with sample names}
+\item{data}{A data.frame of gene expression data with the first column containing gene symbols other columns headed with sample names and containg expression data}
 
 \item{pdata}{A data.frame of phenodata with a column headed Class and the other headed Sample}
 
@@ -17,9 +17,13 @@ mdp(data, pdata, control_lab, directory = "", pathways, print = TRUE,
 
 \item{directory}{The output directory (optional)}
 
+\item{pathways}{The location of a gmt file}
+
 \item{print}{Set as default to TRUE if you wish graph pdfs of the geneMDP and sampleMDP values to be printed}
 
-\item{filename}{the path to your gene matrix transposed file format (*.gmt) file}
+\item{measure}{Set as default to "median", can be changed to "mean". This measure is used to compute the Z-score for the gene normalisation and also to designate samples as perturbed.}
+
+\item{std}{Set as default to 2. This controls the standard deviation threshold for the Z-score calculation. Normalised expression values less than "std" will be set to 0. This std value is used to compute the Z-score for the gene normalisation and also to designate samples as perturbed.}
 }
 \value{
 A list where [[1]] $Zscore contains a table of Z scores, [[2]] $gMDP contains gMDP scores and [[3]] $sMDP are the sampleMDP scores
@@ -33,10 +37,4 @@ in each class to give the geneMDP.
 }
 \examples{
 mdp(exp,pheno,"healthy_control",print=TRUE,directory="myexp")
-Calculate Z score
-Multiple plot function
-
-function to plot images on one plot
-Read gmt
-
 }
