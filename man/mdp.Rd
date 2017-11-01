@@ -2,36 +2,37 @@
 % Please edit documentation in R/mdp.R
 \name{mdp}
 \alias{mdp}
-\title{Function to examine gene and sample heterogeneity, according to how perturbed they are from healthy.}
+\title{Molecular Degree of Perturbation
+Function to examine gene and sample heterogeneity according to how perturbed they are from healthy.}
 \usage{
-mdp(data, pdata, control_lab, directory = "", pathways, n = 1,
-  print = TRUE, measure = "median", std = 2)
+mdp(data, pdata, control_lab, directory = "", pathways, print = TRUE,
+  measure = "median", std = 2)
 }
 \arguments{
-\item{data}{A data.frame of gene expression data with the first column headed "Symbol" and other columns headed with sample names}
+\item{data}{A data.frame of gene expression data with the first column contain gene symbols other columns headed with sample names}
 
-\item{pdata}{A data.frame of pheno with a column headed Class and the other headed Sample}
+\item{pdata}{A data.frame of phenodata with a column headed Class and the other headed Sample}
 
-\item{control_lab}{A character of the class type that corresponds to the control}
+\item{control_lab}{A character vector of the name of the class that will be used as reference}
+
+\item{directory}{The output directory (optional)}
 
 \item{print}{Set as default to TRUE if you wish graph pdfs of the geneMDP and sampleMDP values to be printed}
-
-\item{director}{A character of optional text to add to the filename of the printed pdfs}
 
 \item{filename}{the path to your gene matrix transposed file format (*.gmt) file}
 }
 \value{
-A list where [[1]] contains a table of Z scores, [[2]] contains gMDP scores and [[3]] are the sampleMDP scores
+A list where [[1]] $Zscore contains a table of Z scores, [[2]] $gMDP contains gMDP scores and [[3]] $sMDP are the sampleMDP scores
 }
 \description{
 Algorithm is based on the Molecular Distance to Health. It performs a Z
-score normalisation to all samples in refence to the healthy, and sets 
-the value to 0 if the score is below 2. The scores are then added for 
-each sample to give the sampleMDP. The scores are summed for each gene  
+score normalisation to all samples in refence to the healthy, and sets
+the value to 0 if the score is below 2 (default). The scores are then added for
+each sample to give the sampleMDP. The scores are summed for each gene
 in each class to give the geneMDP.
 }
 \examples{
-mdp(exp,pheno,"healthy_control",print=TRUE,directory="myexp") 
+mdp(exp,pheno,"healthy_control",print=TRUE,directory="myexp")
 Calculate Z score
 Multiple plot function
 
