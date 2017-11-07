@@ -116,7 +116,7 @@ new_progress <- function(n_steps, nth_step=0) {
 
 # ----------------------- LOAD GMT -------------------------------------------#######
 if (!missing(pathways)){
-  gmt <- read_gmt(pathways)
+  gmt <- read.gmt(pathways)
   if (length(gmt) > 50){
     message("warning: you have a large number of pathways so the analysis may take a while...")
   }
@@ -472,7 +472,7 @@ return(output)
 #' Read gmt
 #' @export
 #' @param fname the path to your gene matrix transposed file format (*.gmt) file
-read_gmt <- function(fname){
+read.gmt <- function(fname){
   res <- list(genes=list(),
               desc=list())
   gmt <- file(fname)
