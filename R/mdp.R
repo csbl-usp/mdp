@@ -1,3 +1,5 @@
+
+#'
 #' Molecular Degree of Perturbation
 #' Function to examine gene and sample heterogeneity according to how perturbed they are from healthy.
 #'
@@ -19,14 +21,6 @@
 #' @examples
 #' mdp(exp,pheno,"healthy_control",print=TRUE,directory="myexp")
 mdp <- function(data,pdata,control_lab,directory="",pathways,print=TRUE,measure="median",std=2){
-
-
-
-# --------- Library
-
-  library(ggplot2)
-  library(grid)
-  library(gridExtra)
 
 
 # --------------- FUNCTIONS - CALCULATE Z SCORE AND CALCULATE CONTROL STATS --- ###
@@ -66,7 +60,7 @@ mdp <- function(data,pdata,control_lab,directory="",pathways,print=TRUE,measure=
 
   # -------- Multiple plot function ---- ####
   #
-  # ggplot objects can be passed in ..., or to plotlist (as a list of ggplot objects)
+  # ggplot objects can be passed in ..., or to plotlist (as a list of ggplot2::ggplot objects)
   # - cols:   Number of columns in layout
   # - layout: A matrix specifying the layout. If present, 'cols' is ignored.
   #
@@ -75,7 +69,7 @@ mdp <- function(data,pdata,control_lab,directory="",pathways,print=TRUE,measure=
   # 3 will go all the way across the bottom.
   #
   multiplot <- function(..., plotlist=NULL, file, cols=1, layout=NULL) {
-    library(grid)
+
 
     # Make a list from the ... arguments and plotlist
     plots <- c(list(...), plotlist)
@@ -96,8 +90,8 @@ mdp <- function(data,pdata,control_lab,directory="",pathways,print=TRUE,measure=
 
     } else {
       # Set up the page
-      grid.newpage()
-      pushViewport(viewport(layout = grid.layout(nrow(layout), ncol(layout))))
+      grid::grid.newpage()
+      grid::pushViewport(viewport(layout = grid.layout(nrow(layout), ncol(layout))))
 
       # Make each plot, in the correct location
       for (i in 1:numPlots) {
@@ -122,7 +116,7 @@ new_progress <- function(n_steps, nth_step=0) {
 
 # ----------------------- LOAD GMT -------------------------------------------#######
 if (!missing(pathways)){
-  gmt <- read.gmt(pathways)
+  gmt <- read_gmt(pathways)
   if (length(gmt) > 50){
     message("warning: you have a large number of pathways so the analysis may take a while...")
   }
@@ -328,12 +322,12 @@ if (print == TRUE){
     title_graph <- paste("sMDP for all samples using", names(genesets)[s])
 
     #Plot sMDP as bar graphs
-    bp1 <- ggplot(data = Zsamples.plot, aes(y = sMDP, x = Sample, fill = Class)) +
-      geom_bar(stat = "identity", width = 0.8, alpha = 0.7) +
-      labs(title = title_graph, x = "Samples", y = "sMDP score") +
+    bp1 <- ggplot2::ggplot(data = Zsamples.plot, aes(y = sMDP, x = Sample, fill = Class)) +
+      ggplot2::geom_bar(stat = "identity", width = 0.8, alpha = 0.7) +
+      ggplot2::labs(title = title_graph, x = "Samples", y = "sMDP score") +
       #  geom_hline(yintercept = MDP_cut, color = "darksalmon", linetype = "dashed") +
-      theme(legend.position = "bottom") +
-      theme(axis.line = element_line(size = 0.5,
+      ggplot2::theme(legend.position = "bottom") +
+      ggplot2::theme(axis.line = element_line(size = 0.5,
                                      linetype = "solid"), panel.grid.major = element_line(colour = "black",
                                                                                           linetype = "blank"), panel.grid.minor = element_line(linetype = "blank"),
             axis.title = element_text(size = 12),
@@ -343,7 +337,7 @@ if (print == TRUE){
             legend.key = element_rect(fill = "grey85"),
             legend.background = element_rect(fill = "grey94"),
             legend.direction = "horizontal") +
-      theme(panel.background = element_rect(fill = NA, linetype = "solid"))
+      ggplot2::theme(panel.background = element_rect(fill = NA, linetype = "solid"))
 
 
     # find order
@@ -358,15 +352,15 @@ if (print == TRUE){
 
 
     ##Boxplot of sMDP score for each class
-    bp2 <- ggplot(data = Zsamples.plot, aes(y = sMDP, x = Class, fill = Class)) +
-      geom_boxplot(outlier.shape=NA) + stat_summary(fun.y = mean, geom = "point", shape = 23, size = 6) +
-      labs(title = title_graph, x = "Groups", y = "sMDP score") +
-      theme(legend.position = "null") +
+    bp2 <- ggplot2::ggplot(data = Zsamples.plot, aes(y = sMDP, x = Class, fill = Class)) +
+      ggplot2::geom_boxplot(outlier.shape=NA) + stat_summary(fun.y = mean, geom = "point", shape = 23, size = 6) +
+      ggplot2::labs(title = title_graph, x = "Groups", y = "sMDP score") +
+      ggplot2::theme(legend.position = "null") +
       #geom_dotplot(binaxis='y', stackdir='center', dotsize=1) +
-      #geom_jitter(shape=16, position=position_jitter(0.2), aes(color=Class)) +
-      scale_x_discrete(limits=names(meansMDP)) +
-      geom_jitter(shape = 16, position = position_jitter(0.2), size=2, color = "grey10",alpha=0.7) +
-      theme(axis.line = element_line(size = 0.5, linetype = "solid"),
+      #ggplot2::geom_jitter(shape=16, position=position_jitter(0.2), aes(color=Class)) +
+      ggplot2::scale_x_discrete(limits=names(meansMDP)) +
+      ggplot2::geom_jitter(shape = 16, position = position_jitter(0.2), size=2, color = "grey10",alpha=0.7) +
+      ggplot2::theme(axis.line = element_line(size = 0.5, linetype = "solid"),
             panel.grid.major = element_line(linetype = "blank"),
             panel.grid.minor = element_line(linetype = "blank"),
             panel.background = element_rect(fill = "white"),
@@ -413,19 +407,19 @@ for(g in 1:length(genesets)){
     Zgroups.plot$Class <- factor(Zgroups.plot$Class)
 
     pdf(file.path(folder.path,"geneMDPfreq.pdf"))
-    test <-  ggplot(Zgroups.plot, aes(x=fracPerturbed, y=gMDP, alpha=1, colour=Class, group=Class)) +  geom_jitter(alpha=0.2, size=3) +
-     theme_bw() + #+  #geom_line(aes(linetype = factor(State)))
-       #geom_smooth(alpha=.2, size=1) + theme_bw() + #+  #geom_line(aes(linetype = factor(State)))
-     labs(title="gMDP vs. fraction of samples gene perturbed in", x="Fraction of samples in which gene is perturbed", y = "gMDP score") + guides(alpha = FALSE)
+    test <-  ggplot2::ggplot(Zgroups.plot, aes(x=fracPerturbed, y=gMDP, alpha=1, colour=Class, group=Class)) +  ggplot2::geom_jitter(alpha=0.2, size=3) +
+     ggplot2::theme_bw() + #+  #geom_line(aes(linetype = factor(State)))
+       #geom_smooth(alpha=.2, size=1) + ggplot2::theme_bw() + #+  #geom_line(aes(linetype = factor(State)))
+     ggplot2::labs(title="gMDP vs. fraction of samples gene perturbed in", x="Fraction of samples in which gene is perturbed", y = "gMDP score") + ggplot2::guides(alpha = FALSE)
     plot(test)
     dev.off()
 
     # print gMDP score
     pdf(file.path(folder.path,"geneMDP.pdf"))
-    test2 <-  ggplot(Zgroups.plot, aes(x=Order, y=gMDP, alpha=1, colour=Class, group=Class)) +  geom_jitter(alpha=0.2, size=3) +
-     theme_bw() + #+  #geom_line(aes(linetype = factor(State)))
-       #geom_smooth(alpha=.2, size=1) + theme_bw() + #+  #geom_line(aes(linetype = factor(State)))
-     labs(title="gMDP for each class", x="Genes", y = "gMDP score") + guides(alpha = FALSE)
+    test2 <-  ggplot2::ggplot(Zgroups.plot, aes(x=Order, y=gMDP, alpha=1, colour=Class, group=Class)) +  ggplot2::geom_jitter(alpha=0.2, size=3) +
+     ggplot2::theme_bw() + #+  #geom_line(aes(linetype = factor(State)))
+       #geom_smooth(alpha=.2, size=1) + ggplot2::theme_bw() + #+  #geom_line(aes(linetype = factor(State)))
+     ggplot2::labs(title="gMDP for each class", x="Genes", y = "gMDP score") + ggplot2::guides(alpha = FALSE)
     plot(test2)
     dev.off()
 
@@ -476,9 +470,9 @@ return(output)
 
 
 #' Read gmt
-#'
-#' @param filename the path to your gene matrix transposed file format (*.gmt) file
-read.gmt <- function(fname){
+#' @export
+#' @param fname the path to your gene matrix transposed file format (*.gmt) file
+read_gmt <- function(fname){
   res <- list(genes=list(),
               desc=list())
   gmt <- file(fname)

@@ -7,7 +7,7 @@
 read.gmt(fname)
 }
 \arguments{
-\item{filename}{the path to your gene matrix transposed file format (*.gmt) file}
+\item{fname}{the path to your gene matrix transposed file format (*.gmt) file}
 }
 \description{
 Read gmt
