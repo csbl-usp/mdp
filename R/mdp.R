@@ -9,6 +9,7 @@
 #' each sample to give the sampleMDP. The scores are summed for each gene
 #' in each class to give the geneMDP.
 #'
+#' @export
 #' @param data A data.frame of gene expression data with the first column containing gene symbols other columns headed with sample names and containg expression data
 #' @param pdata A data.frame of phenodata with a column headed Class and the other headed Sample
 #' @param control_lab A character vector of the name of the class that will be used as reference
