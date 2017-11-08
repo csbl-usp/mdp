@@ -1,8 +1,6 @@
-
-#'
 #' Molecular Degree of Perturbation
+#' 
 #' Function to examine gene and sample heterogeneity according to how perturbed they are from healthy.
-#'
 #' Algorithm is based on the Molecular Distance to Health. It performs a Z
 #' score normalisation to all samples in refence to the healthy, and sets
 #' the value to 0 if the score is below 2 (default). The scores are then added for
