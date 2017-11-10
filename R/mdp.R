@@ -1,24 +1,20 @@
 #' Molecular Degree of Perturbation
-#' 
-#' Function to examine gene and sample heterogeneity according to how perturbed they are from healthy.
-#' Algorithm is based on the Molecular Distance to Health. It performs a Z
-#' score normalisation to all samples in refence to the healthy, and sets
-#' the value to 0 if the score is below 2 (default). The scores are then added for
-#' each sample to give the sampleMDP. The scores are summed for each gene
-#' in each class to give the geneMDP.
+#'
+#' Based on the Molecular Distance to Health, this function allows the inspection of gene and sample heterogeneity in respect to a control class. When a gmt file is
+#' submitted, the MDP is run on gene subsets. The MDP returns perturbation scores for each gene and each sample.
 #'
 #' @export
-#' @param data A data.frame of gene expression data with the first column containing gene symbols other columns headed with sample names and containg expression data
-#' @param pdata A data.frame of phenodata with a column headed Class and the other headed Sample
-#' @param control_lab A character vector of the name of the class that will be used as reference
+#' @param data A data.frame of gene expression data with the first column containing gene symbols. Other columns headed with sample names.
+#' @param pdata A data.frame of phenodata with a column headed Class and the other headed Sample.
+#' @param control_lab A character vector of the control class
 #' @param print Set as default to TRUE if you wish graph pdfs of the geneMDP and sampleMDP values to be printed
 #' @param directory The output directory (optional)
-#' @param pathways The location of a gmt file
-#' @param measure Set as default to "median", can be changed to "mean". This measure is used to compute the Z-score for the gene normalisation and also to designate samples as perturbed.
-#' @param std Set as default to 2. This controls the standard deviation threshold for the Z-score calculation. Normalised expression values less than "std" will be set to 0. This std value is used to compute the Z-score for the gene normalisation and also to designate samples as perturbed.
+#' @param pathways The location of a gmt file (optional)
+#' @param measure Set as default to "median", can be changed to "mean". This measure is used in all Z-score calculations.
+#' @param std Set as default to 2. This controls the standard deviation threshold for the Z-score calculation. Normalised expression values less than "std" will be set to 0.
 #' @return A list where [[1]] $Zscore contains a table of Z scores, [[2]] $gMDP contains gMDP scores and [[3]] $sMDP are the sampleMDP scores
-#' @examples
-#' mdp(exp,pheno,"healthy_control",print=TRUE,directory="myexp")
+#' @examples mdp(exp,pheno,"healthy_control")
+#' @examples mdp(exp,pheno,"healthy_control",print=TRUE,directory="myexp",pathways="mypathways.gmt")
 mdp <- function(data,pdata,control_lab,directory="",pathways,print=TRUE,measure="median",std=2){
 
 
@@ -90,14 +86,14 @@ mdp <- function(data,pdata,control_lab,directory="",pathways,print=TRUE,measure=
     } else {
       # Set up the page
       grid::grid.newpage()
-      grid::pushViewport(viewport(layout = grid.layout(nrow(layout), ncol(layout))))
+      grid::pushViewport(grid::viewport(layout = grid::grid.layout(nrow(layout), ncol(layout))))
 
       # Make each plot, in the correct location
       for (i in 1:numPlots) {
         # Get the i,j matrix positions of the regions that contain this subplot
         matchidx <- as.data.frame(which(layout == i, arr.ind = TRUE))
 
-        print(plots[[i]], vp = viewport(layout.pos.row = matchidx$row,
+        print(plots[[i]], vp = grid::viewport(layout.pos.row = matchidx$row,
                                         layout.pos.col = matchidx$col))
       }
     }
@@ -321,14 +317,14 @@ if (print == TRUE){
     title_graph <- paste("sMDP for all samples using", names(genesets)[s])
 
     #Plot sMDP as bar graphs
-    bp1 <- ggplot2::ggplot(data = Zsamples.plot, aes(y = sMDP, x = Sample, fill = Class)) +
+    bp1 <- ggplot2::ggplot(data = Zsamples.plot, ggplot2::aes(y = sMDP, x = Sample, fill = Class)) +
       ggplot2::geom_bar(stat = "identity", width = 0.8, alpha = 0.7) +
       ggplot2::labs(title = title_graph, x = "Samples", y = "sMDP score") +
       #  geom_hline(yintercept = MDP_cut, color = "darksalmon", linetype = "dashed") +
       ggplot2::theme(legend.position = "bottom") +
       ggplot2::theme(axis.line = element_line(size = 0.5,
-                                     linetype = "solid"), panel.grid.major = element_line(colour = "black",
-                                                                                          linetype = "blank"), panel.grid.minor = element_line(linetype = "blank"),
+                                     linetype = "solid"), panel.grid.major = ggplot2::element_line(colour = "black",
+                                                                                                            linetype = "blank"), panel.grid.minor = ggplot2::element_line(linetype = "blank"),
             axis.title = element_text(size = 12),
             axis.text = element_text(size = 12, angle = 90),
             plot.title = element_text(size = 12),
@@ -336,7 +332,7 @@ if (print == TRUE){
             legend.key = element_rect(fill = "grey85"),
             legend.background = element_rect(fill = "grey94"),
             legend.direction = "horizontal") +
-      ggplot2::theme(panel.background = element_rect(fill = NA, linetype = "solid"))
+            theme(panel.background = ggplot2::element_rect(fill = NA, linetype = "solid"))
 
 
     # find order
@@ -351,19 +347,19 @@ if (print == TRUE){
 
 
     ##Boxplot of sMDP score for each class
-    bp2 <- ggplot2::ggplot(data = Zsamples.plot, aes(y = sMDP, x = Class, fill = Class)) +
-      ggplot2::geom_boxplot(outlier.shape=NA) + stat_summary(fun.y = mean, geom = "point", shape = 23, size = 6) +
+    bp2 <- ggplot2::ggplot(data = Zsamples.plot, ggplot2::aes(y = sMDP, x = Class, fill = Class)) +
+      ggplot2::geom_boxplot(outlier.shape=NA) + ggplot2::stat_summary(fun.y = mean, geom = "point", shape = 23, size = 6) +
       ggplot2::labs(title = title_graph, x = "Groups", y = "sMDP score") +
       ggplot2::theme(legend.position = "null") +
       #geom_dotplot(binaxis='y', stackdir='center', dotsize=1) +
-      #ggplot2::geom_jitter(shape=16, position=position_jitter(0.2), aes(color=Class)) +
+      #ggplot2::geom_jitter(shape=16, position=position_jitter(0.2), ggplot2::aes(color=Class)) +
       ggplot2::scale_x_discrete(limits=names(meansMDP)) +
       ggplot2::geom_jitter(shape = 16, position = position_jitter(0.2), size=2, color = "grey10",alpha=0.7) +
-      ggplot2::theme(axis.line = element_line(size = 0.5, linetype = "solid"),
-            panel.grid.major = element_line(linetype = "blank"),
-            panel.grid.minor = element_line(linetype = "blank"),
-            panel.background = element_rect(fill = "white"),
-            axis.text = element_text(size = 10))
+      ggplot2::theme(axis.line = ggplot2::element_line(size = 0.5, linetype = "solid"),
+            panel.grid.major = ggplot2::element_line(linetype = "blank"),
+            panel.grid.minor = ggplot2::element_line(linetype = "blank"),
+            panel.background = ggplot2::element_rect(fill = "white"),
+            axis.text = ggplot2::element_text(size = 10))
 
     pdf(file.path(folder.path,"sMDP.pdf"))
     multiplot(bp1,bp2,cols=2)
@@ -406,18 +402,18 @@ for(g in 1:length(genesets)){
     Zgroups.plot$Class <- factor(Zgroups.plot$Class)
 
     pdf(file.path(folder.path,"geneMDPfreq.pdf"))
-    test <-  ggplot2::ggplot(Zgroups.plot, aes(x=fracPerturbed, y=gMDP, alpha=1, colour=Class, group=Class)) +  ggplot2::geom_jitter(alpha=0.2, size=3) +
-     ggplot2::theme_bw() + #+  #geom_line(aes(linetype = factor(State)))
-       #geom_smooth(alpha=.2, size=1) + ggplot2::theme_bw() + #+  #geom_line(aes(linetype = factor(State)))
+    test <-  ggplot2::ggplot(Zgroups.plot, ggplot2::aes(x=fracPerturbed, y=gMDP, alpha=1, colour=Class, group=Class)) +  ggplot2::geom_jitter(alpha=0.2, size=3) +
+     ggplot2::theme_bw() + #+  #geom_line(ggplot2::aes(linetype = factor(State)))
+       #geom_smooth(alpha=.2, size=1) + ggplot2::theme_bw() + #+  #geom_line(ggplot2::aes(linetype = factor(State)))
      ggplot2::labs(title="gMDP vs. fraction of samples gene perturbed in", x="Fraction of samples in which gene is perturbed", y = "gMDP score") + ggplot2::guides(alpha = FALSE)
     plot(test)
     dev.off()
 
     # print gMDP score
     pdf(file.path(folder.path,"geneMDP.pdf"))
-    test2 <-  ggplot2::ggplot(Zgroups.plot, aes(x=Order, y=gMDP, alpha=1, colour=Class, group=Class)) +  ggplot2::geom_jitter(alpha=0.2, size=3) +
-     ggplot2::theme_bw() + #+  #geom_line(aes(linetype = factor(State)))
-       #geom_smooth(alpha=.2, size=1) + ggplot2::theme_bw() + #+  #geom_line(aes(linetype = factor(State)))
+    test2 <-  ggplot2::ggplot(Zgroups.plot, ggplot2::aes(x=Order, y=gMDP, alpha=1, colour=Class, group=Class)) +  ggplot2::geom_jitter(alpha=0.2, size=3) +
+     ggplot2::theme_bw() + #+  #geom_line(ggplot2::aes(linetype = factor(State)))
+       #geom_smooth(alpha=.2, size=1) + ggplot2::theme_bw() + #+  #geom_line(ggplot2::aes(linetype = factor(State)))
      ggplot2::labs(title="gMDP for each class", x="Genes", y = "gMDP score") + ggplot2::guides(alpha = FALSE)
     plot(test2)
     dev.off()

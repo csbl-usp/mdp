@@ -2,39 +2,36 @@
 % Please edit documentation in R/mdp.R
 \name{mdp}
 \alias{mdp}
-\title{Molecular Degree of Perturbation
-Function to examine gene and sample heterogeneity according to how perturbed they are from healthy.}
+\title{Molecular Degree of Perturbation}
 \usage{
 mdp(data, pdata, control_lab, directory = "", pathways, print = TRUE,
   measure = "median", std = 2)
 }
 \arguments{
-\item{data}{A data.frame of gene expression data with the first column containing gene symbols other columns headed with sample names and containg expression data}
+\item{data}{A data.frame of gene expression data with the first column containing gene symbols. Other columns headed with sample names.}
 
-\item{pdata}{A data.frame of phenodata with a column headed Class and the other headed Sample}
+\item{pdata}{A data.frame of phenodata with a column headed Class and the other headed Sample.}
 
-\item{control_lab}{A character vector of the name of the class that will be used as reference}
+\item{control_lab}{A character vector of the control class}
 
 \item{directory}{The output directory (optional)}
 
-\item{pathways}{The location of a gmt file}
+\item{pathways}{The location of a gmt file (optional)}
 
 \item{print}{Set as default to TRUE if you wish graph pdfs of the geneMDP and sampleMDP values to be printed}
 
-\item{measure}{Set as default to "median", can be changed to "mean". This measure is used to compute the Z-score for the gene normalisation and also to designate samples as perturbed.}
+\item{measure}{Set as default to "median", can be changed to "mean". This measure is used in all Z-score calculations.}
 
-\item{std}{Set as default to 2. This controls the standard deviation threshold for the Z-score calculation. Normalised expression values less than "std" will be set to 0. This std value is used to compute the Z-score for the gene normalisation and also to designate samples as perturbed.}
+\item{std}{Set as default to 2. This controls the standard deviation threshold for the Z-score calculation. Normalised expression values less than "std" will be set to 0.}
 }
 \value{
 A list where [[1]] $Zscore contains a table of Z scores, [[2]] $gMDP contains gMDP scores and [[3]] $sMDP are the sampleMDP scores
 }
 \description{
-Algorithm is based on the Molecular Distance to Health. It performs a Z
-score normalisation to all samples in refence to the healthy, and sets
-the value to 0 if the score is below 2 (default). The scores are then added for
-each sample to give the sampleMDP. The scores are summed for each gene
-in each class to give the geneMDP.
+Based on the Molecular Distance to Health, this function allows the inspection of gene and sample heterogeneity in respect to a control class. When a gmt file is
+submitted, the MDP is run on gene subsets. The MDP returns perturbation scores for each gene and each sample.
 }
 \examples{
-mdp(exp,pheno,"healthy_control",print=TRUE,directory="myexp")
+mdp(exp,pheno,"healthy_control")
+mdp(exp,pheno,"healthy_control",print=TRUE,directory="myexp",pathways="mypathways.gmt")
 }
