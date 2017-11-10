@@ -322,17 +322,17 @@ if (print == TRUE){
       ggplot2::labs(title = title_graph, x = "Samples", y = "sMDP score") +
       #  geom_hline(yintercept = MDP_cut, color = "darksalmon", linetype = "dashed") +
       ggplot2::theme(legend.position = "bottom") +
-      ggplot2::theme(axis.line = element_line(size = 0.5,
+      ggplot2::theme(axis.line = ggplot2::element_line(size = 0.5,
                                      linetype = "solid"), panel.grid.major = ggplot2::element_line(colour = "black",
                                                                                                             linetype = "blank"), panel.grid.minor = ggplot2::element_line(linetype = "blank"),
-            axis.title = element_text(size = 12),
-            axis.text = element_text(size = 12, angle = 90),
-            plot.title = element_text(size = 12),
-            panel.background = element_rect(fill = "grey100"),
-            legend.key = element_rect(fill = "grey85"),
-            legend.background = element_rect(fill = "grey94"),
+            axis.title = ggplot2::element_text(size = 12),
+            axis.text = ggplot2::element_text(size = 12, angle = 90),
+            plot.title = ggplot2::element_text(size = 12),
+            panel.background = ggplot2::element_rect(fill = "grey100"),
+            legend.key = ggplot2::element_rect(fill = "grey85"),
+            legend.background = ggplot2::element_rect(fill = "grey94"),
             legend.direction = "horizontal") +
-            theme(panel.background = ggplot2::element_rect(fill = NA, linetype = "solid"))
+      ggplot2::theme(panel.background = ggplot2::element_rect(fill = NA, linetype = "solid"))
 
 
     # find order
@@ -354,7 +354,7 @@ if (print == TRUE){
       #geom_dotplot(binaxis='y', stackdir='center', dotsize=1) +
       #ggplot2::geom_jitter(shape=16, position=position_jitter(0.2), ggplot2::aes(color=Class)) +
       ggplot2::scale_x_discrete(limits=names(meansMDP)) +
-      ggplot2::geom_jitter(shape = 16, position = position_jitter(0.2), size=2, color = "grey10",alpha=0.7) +
+      ggplot2::geom_jitter(shape = 16, position = ggplot2::position_jitter(0.2), size=2, color = "grey10", alpha=0.7) +
       ggplot2::theme(axis.line = ggplot2::element_line(size = 0.5, linetype = "solid"),
             panel.grid.major = ggplot2::element_line(linetype = "blank"),
             panel.grid.minor = ggplot2::element_line(linetype = "blank"),
