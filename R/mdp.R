@@ -143,8 +143,6 @@ if (missing(pdata)){
 }
 if (missing(data)){
   stop("Please include expression data")
-} else if (!is.character(data[,1])){
-  stop("Please provide gene symbols in first column of expression data")
 } else if (length(unique(data[,1])) != length(data[,1])){
   stop("Please provide unique gene symbols for the expression data")
 } else if (!all(apply(data[,2:ncol(data)],2,is.numeric))){
