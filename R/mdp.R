@@ -4,7 +4,7 @@
 #' submitted, the MDP is run on gene subsets. The MDP returns perturbation scores for each gene and each sample.
 #'
 #' @export
-#' @param data A data.frame of gene expression data with the first column containing gene symbols. Other columns headed with sample names.
+#' @param data A data.frame of gene expression data with the gene symbols in the first column
 #' @param pdata A data.frame of phenodata with a column headed Class and the other headed Sample.
 #' @param control_lab A character vector of the control class
 #' @param print Set as default to TRUE if you wish graph pdfs of the geneMDP and sampleMDP values to be printed
@@ -53,53 +53,6 @@ mdp <- function(data,pdata,control_lab,directory="",pathways,print=TRUE,measure=
   }
 
 
-  # -------- Multiple plot function ---- ####
-  #
-  # ggplot objects can be passed in ..., or to plotlist (as a list of ggplot2::ggplot objects)
-  # - cols:   Number of columns in layout
-  # - layout: A matrix specifying the layout. If present, 'cols' is ignored.
-  #
-  # If the layout is something like matrix(c(1,2,3,3), nrow=2, byrow=TRUE),
-  # then plot 1 will go in the upper left, 2 will go in the upper right, and
-  # 3 will go all the way across the bottom.
-  #
-  multiplot <- function(..., plotlist=NULL, file, cols=1, layout=NULL) {
-
-
-    # Make a list from the ... arguments and plotlist
-    plots <- c(list(...), plotlist)
-
-    numPlots = length(plots)
-
-    # If layout is NULL, then use 'cols' to determine layout
-    if (is.null(layout)) {
-      # Make the panel
-      # ncol: Number of columns of plots
-      # nrow: Number of rows needed, calculated from # of cols
-      layout <- matrix(seq(1, cols * ceiling(numPlots/cols)),
-                       ncol = cols, nrow = ceiling(numPlots/cols))
-    }
-
-    if (numPlots==1) {
-      print(plots[[1]])
-
-    } else {
-      # Set up the page
-      grid::grid.newpage()
-      grid::pushViewport(grid::viewport(layout = grid::grid.layout(nrow(layout), ncol(layout))))
-
-      # Make each plot, in the correct location
-      for (i in 1:numPlots) {
-        # Get the i,j matrix positions of the regions that contain this subplot
-        matchidx <- as.data.frame(which(layout == i, arr.ind = TRUE))
-
-        print(plots[[i]], vp = grid::viewport(layout.pos.row = matchidx$row,
-                                        layout.pos.col = matchidx$col))
-      }
-    }
-  }
-
-
 
 new_progress <- function(n_steps, nth_step=0) {
 	return(function(msg){
@@ -109,13 +62,6 @@ new_progress <- function(n_steps, nth_step=0) {
 }
 
 
-# ----------------------- LOAD GMT -------------------------------------------#######
-if (!missing(pathways)){
-  gmt <- read.gmt(pathways)
-  if (length(gmt) > 50){
-    message("warning: you have a large number of pathways so the analysis may take a while...")
-  }
-}
 
 # ---------- create directory ---------------------------------#######
 
@@ -143,15 +89,13 @@ if (missing(pdata)){
 }
 if (missing(data)){
   stop("Please include expression data")
-} else if (length(unique(data[,1])) != length(data[,1])){
-  stop("Please provide unique gene symbols for the expression data")
-} else if (!all(apply(data[,2:ncol(data)],2,is.numeric))){
+} else if (!all(apply(data,2,is.numeric))){
   stop("Please provide numeric values in expression data columns")
 }
 
 pdata <- pdata[as.character(pdata$Sample) %in% colnames(data),]  # Only keep the samples that have both pdata and data
 rownames(pdata) <- pdata$Sample
-data <- cbind("Symbol" = data[,1],data[,as.character(pdata$Sample)])  # Expression data has c(1) and samples
+data <- data[,as.character(pdata$Sample)]  # Expression data has c(1) and samples
 
 progress <- new_progress(5)
 
@@ -171,8 +115,8 @@ names(idx) <- unique(pdata$Class)
 # ----------- FIND MEAN, SD FOR HEALTHY CONTROLS
 progress("Computing Z-score for contrast samples")
 
-data.vals <- as.matrix(data[,-c(1)])
-dataHealth <- t(apply(data.vals[,idx[[control_idx]]],1,function(x) {
+
+dataHealth <- t(apply(data[,idx[[control_idx]]],1,function(x) {
   GetMeanSD(as.numeric(x),measure)}))
 
 
@@ -184,24 +128,24 @@ progress("Computing Z-score for reference samples")
 N <- 1 # min number of standard deviations that are accepted
 
 # Z score for all samples apart from controls
-Zscore <- matrix(nrow=nrow(data.vals), ncol=ncol(data.vals))
-rownames(Zscore) <- data$Symbol
+Zscore <- matrix(nrow=nrow(data), ncol=ncol(data))
+rownames(Zscore) <- rownames(data)
 
-colnames(Zscore) <- names(data[,-c(1)])
-Zscore[,-idx[[control_idx]]] <- apply(data.vals[,-idx[[control_idx]]] ,2,function(x) Z(x,dataHealth,std))
+colnames(Zscore) <- names(data)
+Zscore[,-idx[[control_idx]]] <- apply(data[,-idx[[control_idx]]] ,2,function(x) Z(x,dataHealth,std))
 
 # Z score for controls using leave-one-out
 Zscore[,idx[[control_idx]]] <- sapply(1:length(idx[[control_idx]]), function(x) {
   # calculate mean using leave-one out
-    dataHealthSubset.mean <- t(apply(data.vals[, idx[[control_idx]][-x]],1,function(j) {
+    dataHealthSubset.mean <- t(apply(data[, idx[[control_idx]][-x]],1,function(j) {
       GetMeanSD(as.numeric(j),measure)}))
   # calculate standard deviation using all of the control samples
-    dataHealthSubset.sd <- t(apply(data.vals[, idx[[control_idx]]],1,function(j) {
+    dataHealthSubset.sd <- t(apply(data[, idx[[control_idx]]],1,function(j) {
       GetMeanSD(as.numeric(j),measure)}))
 
     dataHealthSubset <- cbind(dataHealthSubset.mean[,1], dataHealthSubset.sd[,2])
 
-  return(Z(data.vals[,idx[[control_idx]][x]],dataHealthSubset,std))
+  return(Z(data[,idx[[control_idx]][x]],dataHealthSubset,std))
 })
 
 
@@ -257,7 +201,7 @@ Zgroups.ranked <- cbind("order" = seq(1:nrow(Zgroups.annotated)),Zgroups.annotat
 
 # find the top perturbed genes
 genes <- Zgroups.ranked$Symbol[rowSums(score) > 0]
-genes <- genes[1:round(length(genes)/2)]
+genes <- genes[1:round(length(genes)/4)]
 
 
 # --------------- FIND sMDP FOR ALL GENE SETs --------------------#####
@@ -265,11 +209,11 @@ genes <- genes[1:round(length(genes)/2)]
 genesets <- list()
 genesets[[1]] <- rownames(Zscore)
 genesets[[2]] <-  genes
+names(genesets)[1:2] <- c("allgenes","perturbedgenes")
 if (!missing(pathways)){
-genesets <- c(genesets,gmt)
+  genesets <- c(genesets,gmt)
 }
 names(genesets)[1:2] <- c("allgenes","perturbedgenes")
-
 
 
 # ------ find sMDP scores for gene subsets ---------------#####
@@ -278,11 +222,6 @@ progress("Calculating sMDP scores")
 Zsamples.list <- data.frame()
 sMDP.list <- list()
 for(s in 1:length(genesets)){
-  folder.path <- paste(path,names(genesets)[s],sep="/")
-
-    if (dir.exists(folder.path) == F){
-      dir.create(folder.path)
-    }
 
   Zscore.annotated.sub <- Zscore.annotated[genesets[[s]],]
   Zsamples <- colSums(Zscore.annotated.sub[,-c(1)], na.rm=T)/nrow(Zscore.annotated.sub)
@@ -301,92 +240,25 @@ for(s in 1:length(genesets)){
   Zsamples.df[Zsamples.df$sMDP >= Zsamples.df$Thresh,"Perturbed"] <- "Perturbed"
   sMDP.list[[s]] <- Zsamples.df
 
-
-if (print == TRUE){
-  # --------------- PLOT: sMDP -------------------#####
-
-
-    Zsamples.plot <- data.frame("Sample" = names(Zsamples), "sMDP" = Zsamples, "Class" = factor(pdata$Class))
-
-    Zsamples.plot <-Zsamples.plot[order(Zsamples.plot$sMDP),]
-
-    Zsamples.plot$Sample <- factor(Zsamples.plot$Sample, levels = Zsamples.plot$Sample[order(Zsamples.plot$sMDP)])
-
-    title_graph <- paste("sMDP for all samples using", names(genesets)[s])
-
-    #Plot sMDP as bar graphs
-    bp1 <- ggplot2::ggplot(data = Zsamples.plot, ggplot2::aes(y = sMDP, x = Sample, fill = Class)) +
-      ggplot2::geom_bar(stat = "identity", width = 0.8, alpha = 0.7) +
-      ggplot2::labs(title = title_graph, x = "Samples", y = "sMDP score") +
-      #  geom_hline(yintercept = MDP_cut, color = "darksalmon", linetype = "dashed") +
-      ggplot2::theme(legend.position = "bottom") +
-      ggplot2::theme(axis.line = ggplot2::element_line(size = 0.5,
-                                     linetype = "solid"), panel.grid.major = ggplot2::element_line(colour = "black",
-                                                                                                            linetype = "blank"), panel.grid.minor = ggplot2::element_line(linetype = "blank"),
-            axis.title = ggplot2::element_text(size = 12),
-            axis.text = ggplot2::element_text(size = 12, angle = 90),
-            plot.title = ggplot2::element_text(size = 12),
-            panel.background = ggplot2::element_rect(fill = "grey100"),
-            legend.key = ggplot2::element_rect(fill = "grey85"),
-            legend.background = ggplot2::element_rect(fill = "grey94"),
-            legend.direction = "horizontal") +
-      ggplot2::theme(panel.background = ggplot2::element_rect(fill = NA, linetype = "solid"))
-
-
-    # find order
-    c=1
-    meansMDP <- vector()
-    for (j in unique(Zsamples.plot$Class)){
-      meansMDP[c] = mean(Zsamples.plot[Zsamples.plot$Class == j,"sMDP"])
-      c = c+1
-    }
-    names(meansMDP) <- unique(Zsamples.plot$Class)
-    meansMDP <- meansMDP[order(meansMDP)]
-
-
-    ##Boxplot of sMDP score for each class
-    bp2 <- ggplot2::ggplot(data = Zsamples.plot, ggplot2::aes(y = sMDP, x = Class, fill = Class)) +
-      ggplot2::geom_boxplot(outlier.shape=NA) + ggplot2::stat_summary(fun.y = mean, geom = "point", shape = 23, size = 6) +
-      ggplot2::labs(title = title_graph, x = "Groups", y = "sMDP score") +
-      ggplot2::theme(legend.position = "null") +
-      #geom_dotplot(binaxis='y', stackdir='center', dotsize=1) +
-      #ggplot2::geom_jitter(shape=16, position=position_jitter(0.2), ggplot2::aes(color=Class)) +
-      ggplot2::scale_x_discrete(limits=names(meansMDP)) +
-      ggplot2::geom_jitter(shape = 16, position = ggplot2::position_jitter(0.2), size=2, color = "grey10", alpha=0.7) +
-      ggplot2::theme(axis.line = ggplot2::element_line(size = 0.5, linetype = "solid"),
-            panel.grid.major = ggplot2::element_line(linetype = "blank"),
-            panel.grid.minor = ggplot2::element_line(linetype = "blank"),
-            panel.background = ggplot2::element_rect(fill = "white"),
-            axis.text = ggplot2::element_text(size = 10))
-
-    pdf(file.path(folder.path,"sMDP.pdf"))
-    multiplot(bp1,bp2,cols=2)
-    dev.off()
-  }
-
-
-
 }
-rownames(Zsamples.list) <- names(genesets)
+
 names(Zsamples.list) <- Zsamples.df$Sample
 names(sMDP.list) <- names(genesets)
+
 
 # --------------- PLOT: gMDP FOR ALL GENES and genesets--------------------####
 
 
 progress("Generating gMDP scores")
 
-for(g in 1:length(genesets)){
-  folder.path <- paste(path,names(genesets)[g],sep="/")
 
   # write table gMDP
-  Zgroups.annotated.sub <- Zgroups.annotated[(rownames(Zgroups.annotated) %in% genesets[[g]]),]
 
-  write.table(x=Zgroups.annotated.sub,file=file.path(folder.path,"gMDPscore.tsv"),row.names=F)
+  write.table(x=Zgroups.annotated,file=file.path(path,"gMDPscore.tsv"),row.names=F)
 
-  if (print == TRUE){
+if (print == TRUE){
 
-    Zgroups.ranked <- cbind("order" = seq(1:nrow(Zgroups.annotated.sub)),Zgroups.annotated.sub)
+    Zgroups.ranked <- cbind("order" = seq(1:nrow(Zgroups.annotated)),Zgroups.annotated)
     # print frequency versus gMDP score for all genes
     ngenes <- nrow(Zgroups.ranked)
     Zgroups.plot <- data.frame(matrix(nrow = nGroups*ngenes, ncol = 4)) # construct a matrix of dim (ngenes*classes)*3, cols show gene Order, gMDP, Class,  frac perturbed
@@ -399,8 +271,8 @@ for(g in 1:length(genesets)){
     head(Zgroups.plot)
     Zgroups.plot$Class <- factor(Zgroups.plot$Class)
 
-    pdf(file.path(folder.path,"geneMDPfreq.pdf"))
-    test <-  ggplot2::ggplot(Zgroups.plot, ggplot2::aes(x=fracPerturbed, y=gMDP, alpha=1, colour=Class, group=Class)) +  ggplot2::geom_jitter(alpha=0.2, size=3) +
+    pdf(file.path(path,"geneMDPfreq.pdf"))
+    test <-  ggplot2::ggplot(Zgroups.plot, ggplot2::aes(x=fracPerturbed, y=gMDP, alpha=1, colour=Class, group=Class)) +  ggplot2::geom_jitter(alpha=0.3, size=3) +
      ggplot2::theme_bw() + #+  #geom_line(ggplot2::aes(linetype = factor(State)))
        #geom_smooth(alpha=.2, size=1) + ggplot2::theme_bw() + #+  #geom_line(ggplot2::aes(linetype = factor(State)))
      ggplot2::labs(title="gMDP vs. fraction of samples gene perturbed in", x="Fraction of samples in which gene is perturbed", y = "gMDP score") + ggplot2::guides(alpha = FALSE)
@@ -408,18 +280,15 @@ for(g in 1:length(genesets)){
     dev.off()
 
     # print gMDP score
-    pdf(file.path(folder.path,"geneMDP.pdf"))
-    test2 <-  ggplot2::ggplot(Zgroups.plot, ggplot2::aes(x=Order, y=gMDP, alpha=1, colour=Class, group=Class)) +  ggplot2::geom_jitter(alpha=0.2, size=3) +
-     ggplot2::theme_bw() + #+  #geom_line(ggplot2::aes(linetype = factor(State)))
-       #geom_smooth(alpha=.2, size=1) + ggplot2::theme_bw() + #+  #geom_line(ggplot2::aes(linetype = factor(State)))
-     ggplot2::labs(title="gMDP for each class", x="Genes", y = "gMDP score") + ggplot2::guides(alpha = FALSE)
-    plot(test2)
-    dev.off()
+ #   pdf(file.path(folder.path,"geneMDP.pdf"))
+#    test2 <-  ggplot2::ggplot(Zgroups.plot, ggplot2::aes(x=Order, y=gMDP, alpha=1, colour=Class, group=Class)) +  ggplot2::geom_jitter(alpha=0.2, size=3) +
+ #    ggplot2::theme_bw() + #+  #geom_line(ggplot2::aes(linetype = factor(State)))
+  #     #geom_smooth(alpha=.2, size=1) + ggplot2::theme_bw() + #+  #geom_line(ggplot2::aes(linetype = factor(State)))
+  #   ggplot2::labs(title="gMDP for each class", x="Genes", y = "gMDP score") + ggplot2::guides(alpha = FALSE)
+  #  plot(test2)
+  #  dev.off()
 
-  }
 }
-
-
 
 # ------------------------- GENE SET ANALYSIS for pathways ------------ #####
 
@@ -448,6 +317,39 @@ progress("Ranking genesets")
 
   # write table
   write.table(x=pathwayMDP.df,file=file.path(path,"sMDPscores.tsv"),row.names=F)
+
+  # make plot for Pathway information
+
+
+  pathwayMDP.df$Pathway <- factor(pathwayMDP.df$Pathway, levels = pathwayMDP.df$Pathway[order(pathwayMDP.df$Test.value)])
+
+
+  pdf(file.path(path,"geneset_summary.pdf"))
+  test <- ggplot2::ggplot(pathwayMDP.df, ggplot2::aes(x=Pathway, y=Test.value)) +  ggplot2::geom_bar(stat = "identity") +
+    ggplot2::theme_bw() + ggplot2::coord_flip() +
+    ggplot2::labs(title="Pathway summary", x="Pathways", y = "Signal to noise ratio of control versus non-control sample sMDP scores")
+  plot(test)
+  dev.off()
+
+
+
+
+  if (print == TRUE){
+    # --------------- PLOT: sMDP -------------------#####
+
+      print(pathwayMDP.df)
+    top.pathway <- pathwayMDP.df$Pathway[-match(c("allgenes","perturbedgenes"),pathwayMDP.df$Pathway)][1]
+    pathway.names <- c("allgenes","perturbedgenes",as.character(top.pathway))
+    pathway.names.idx <- match(pathway.names, names(sMDP.list))
+    pathway.names <- make.names(pathway.names)
+
+    print(pathway.names)
+
+    for (j in 1:3){
+      plot.smdp(sMDP.list[[pathway.names.idx[j]]],filename=pathway.names[j],path=path,title.graph="")
+    }
+
+  }
 
 
 # ---------------- OUTPUT ---------------- ####
@@ -480,6 +382,125 @@ read.gmt <- function(fname){
   names(gmt.desc) <- names(gmt.genes) <- gmt.names
   return(gmt.genes)
 }
+
+
+
+#' Plot sMDP scores
+#' @export
+#' @param sMDP.data a data.frame containing sMDP information for a geneset, with columns "Sample", "sMDP" and "Class"
+#' @param filename filename
+plot.smdp <- function(sMDP.plot,filename="",path="",title.graph=""){
+
+
+  # -------- Multiple plot function ---- ####
+  #
+  # ggplot objects can be passed in ..., or to plotlist (as a list of ggplot2::ggplot objects)
+  # - cols:   Number of columns in layout
+  # - layout: A matrix specifying the layout. If present, 'cols' is ignored.
+  #
+  # If the layout is something like matrix(c(1,2,3,3), nrow=2, byrow=TRUE),
+  # then plot 1 will go in the upper left, 2 will go in the upper right, and
+  # 3 will go all the way across the bottom.
+  #
+  multiplot <- function(..., plotlist=NULL, file, cols=1, layout=NULL) {
+
+
+    # Make a list from the ... arguments and plotlist
+    plots <- c(list(...), plotlist)
+
+    numPlots = length(plots)
+
+    # If layout is NULL, then use 'cols' to determine layout
+    if (is.null(layout)) {
+      # Make the panel
+      # ncol: Number of columns of plots
+      # nrow: Number of rows needed, calculated from # of cols
+      layout <- matrix(seq(1, cols * ceiling(numPlots/cols)),
+                       ncol = cols, nrow = ceiling(numPlots/cols))
+    }
+
+    if (numPlots==1) {
+      print(plots[[1]])
+
+    } else {
+      # Set up the page
+      grid::grid.newpage()
+      grid::pushViewport(grid::viewport(layout = grid::grid.layout(nrow(layout), ncol(layout))))
+
+      # Make each plot, in the correct location
+      for (i in 1:numPlots) {
+        # Get the i,j matrix positions of the regions that contain this subplot
+        matchidx <- as.data.frame(which(layout == i, arr.ind = TRUE))
+
+        print(plots[[i]], vp = grid::viewport(layout.pos.row = matchidx$row,
+                                              layout.pos.col = matchidx$col))
+      }
+    }
+  }
+
+
+  Zsamples.plot <-sMDP.plot[order(sMDP.plot$sMDP),]
+
+  Zsamples.plot$Sample <- factor(Zsamples.plot$Sample, levels = Zsamples.plot$Sample[order(Zsamples.plot$sMDP)])
+
+  #Plot sMDP as bar graphs
+  bp1 <- ggplot2::ggplot(data = Zsamples.plot, ggplot2::aes(y = sMDP, x = Sample, fill = Class)) +
+    ggplot2::geom_bar(stat = "identity", width = 0.8, alpha = 0.7) +
+    ggplot2::labs(title = title.graph, x = "Samples", y = "sMDP score") +
+    #  geom_hline(yintercept = MDP_cut, color = "darksalmon", linetype = "dashed") +
+    ggplot2::theme(legend.position = "bottom") +
+    ggplot2::theme(axis.line = ggplot2::element_line(size = 0.5,
+                                                     linetype = "solid"), panel.grid.major = ggplot2::element_line(colour = "black",
+                                                                                                                   linetype = "blank"), panel.grid.minor = ggplot2::element_line(linetype = "blank"),
+                   axis.title = ggplot2::element_text(size = 12),
+                   axis.text = ggplot2::element_text(size = 12, angle = 90),
+                   plot.title = ggplot2::element_text(size = 12),
+                   panel.background = ggplot2::element_rect(fill = "grey100"),
+                   legend.key = ggplot2::element_rect(fill = "grey85"),
+                   legend.background = ggplot2::element_rect(fill = "grey94"),
+                   legend.direction = "horizontal") +
+    ggplot2::theme(panel.background = ggplot2::element_rect(fill = NA, linetype = "solid"))
+
+
+  # find order
+  c=1
+  meansMDP <- vector()
+  for (j in unique(Zsamples.plot$Class)){
+    meansMDP[c] = mean(Zsamples.plot[Zsamples.plot$Class == j,"sMDP"])
+    c = c+1
+  }
+  names(meansMDP) <- unique(Zsamples.plot$Class)
+  meansMDP <- meansMDP[order(meansMDP)]
+
+
+  ##Boxplot of sMDP score for each class
+  bp2 <- ggplot2::ggplot(data = Zsamples.plot, ggplot2::aes(y = sMDP, x = Class, fill = Class)) +
+    ggplot2::geom_boxplot(outlier.shape=NA) + ggplot2::stat_summary(fun.y = mean, geom = "point", shape = 23, size = 6) +
+    ggplot2::labs(title = title.graph, x = "Groups", y = "sMDP score") +
+    ggplot2::theme(legend.position = "null") +
+    #geom_dotplot(binaxis='y', stackdir='center', dotsize=1) +
+    #ggplot2::geom_jitter(shape=16, position=position_jitter(0.2), ggplot2::aes(color=Class)) +
+    ggplot2::scale_x_discrete(limits=names(meansMDP)) +
+    ggplot2::geom_jitter(shape = 16, position = ggplot2::position_jitter(0.2), size=2, color = "grey10", alpha=0.7) +
+    ggplot2::theme(axis.line = ggplot2::element_line(size = 0.5, linetype = "solid"),
+                   panel.grid.major = ggplot2::element_line(linetype = "blank"),
+                   panel.grid.minor = ggplot2::element_line(linetype = "blank"),
+                   panel.background = ggplot2::element_rect(fill = "white"),
+                   axis.text = ggplot2::element_text(size = 10))
+
+  smdp.name <- paste(filename,"sMDP.pdf",sep="")
+  pdf(file.path(path,smdp.name))
+  multiplot(bp1,bp2,cols=2)
+  dev.off()
+
+
+
+}
+
+
+
+
+
 
 
 
