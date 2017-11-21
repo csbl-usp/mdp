@@ -211,7 +211,7 @@ genesets[[1]] <- rownames(Zscore)
 genesets[[2]] <-  genes
 names(genesets)[1:2] <- c("allgenes","perturbedgenes")
 if (!missing(pathways)){
-  genesets <- c(genesets,gmt)
+  genesets <- c(genesets,pathways)
 }
 names(genesets)[1:2] <- c("allgenes","perturbedgenes")
 
