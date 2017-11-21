@@ -4,13 +4,18 @@
 \alias{plot.smdp}
 \title{Plot sMDP scores}
 \usage{
-\method{plot}{smdp}(sMDP.plot, filename = "", path = "", title.graph = "")
+\method{plot}{smdp}(sMDP.data, filename = "", directory = "",
+  title.graph = "")
 }
 \arguments{
+\item{sMDP.data}{a data.frame containing sMDP information for a geneset, with columns "Sample", "sMDP" and "Class"}
+
 \item{filename}{filename}
 
-\item{sMDP.data}{a data.frame containing sMDP information for a geneset, with columns "Sample", "sMDP" and "Class"}
+\item{directory}{directory to save file}
+
+\item{title.graph}{title name for graph}
 }
 \description{
-Plot sMDP scores
+Plots the sMDP scores for a given geneset. Takes a data.frame that contains the sMDP scores for one geneset, along with the Sample and Class information. Data.frame must have a sMDP, Sample and Class columns.
 }

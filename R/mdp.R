@@ -337,16 +337,13 @@ progress("Ranking genesets")
   if (print == TRUE){
     # --------------- PLOT: sMDP -------------------#####
 
-      print(pathwayMDP.df)
     top.pathway <- pathwayMDP.df$Pathway[-match(c("allgenes","perturbedgenes"),pathwayMDP.df$Pathway)][1]
     pathway.names <- c("allgenes","perturbedgenes",as.character(top.pathway))
     pathway.names.idx <- match(pathway.names, names(sMDP.list))
     pathway.names <- make.names(pathway.names)
 
-    print(pathway.names)
-
     for (j in 1:3){
-      plot.smdp(sMDP.list[[pathway.names.idx[j]]],filename=pathway.names[j],path=path,title.graph="")
+      plot.smdp(sMDP.data=sMDP.list[[pathway.names.idx[j]]],filename=pathway.names[j],directory=path,title.graph=pathway.names[j])
     }
 
   }
@@ -365,6 +362,8 @@ return(output)
 
 
 #' Read gmt
+#'
+#' File to read a gmt file and return as a list
 #' @export
 #' @param fname the path to your gene matrix transposed file format (*.gmt) file
 read.gmt <- function(fname){
@@ -386,11 +385,23 @@ read.gmt <- function(fname){
 
 
 #' Plot sMDP scores
+#'
+#' Plots the sMDP scores for a given geneset. Takes a data.frame that contains the sMDP scores for one geneset, along with the Sample and Class information. Data.frame must have a sMDP, Sample and Class columns.
 #' @export
 #' @param sMDP.data a data.frame containing sMDP information for a geneset, with columns "Sample", "sMDP" and "Class"
 #' @param filename filename
-plot.smdp <- function(sMDP.plot,filename="",path="",title.graph=""){
+#' @param directory directory to save file
+#' @param title.graph title name for graph
+plot.smdp <- function(sMDP.data,filename="",directory="",title.graph=""){
 
+  if (directory != ""){
+    path = directory
+    if (dir.exists(directory) == F){
+      dir.create(directory)
+    }
+  } else {
+    path = "."
+  }
 
   # -------- Multiple plot function ---- ####
   #
@@ -439,7 +450,7 @@ plot.smdp <- function(sMDP.plot,filename="",path="",title.graph=""){
   }
 
 
-  Zsamples.plot <-sMDP.plot[order(sMDP.plot$sMDP),]
+  Zsamples.plot <-sMDP.data[order(sMDP.data$sMDP),]
 
   Zsamples.plot$Sample <- factor(Zsamples.plot$Sample, levels = Zsamples.plot$Sample[order(Zsamples.plot$sMDP)])
 
@@ -492,7 +503,6 @@ plot.smdp <- function(sMDP.plot,filename="",path="",title.graph=""){
   pdf(file.path(path,smdp.name))
   multiplot(bp1,bp2,cols=2)
   dev.off()
-
 
 
 }

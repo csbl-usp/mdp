@@ -10,5 +10,5 @@ read.gmt(fname)
 \item{fname}{the path to your gene matrix transposed file format (*.gmt) file}
 }
 \description{
-Read gmt
+File to read a gmt file and return as a list
 }
