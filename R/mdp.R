@@ -4,7 +4,7 @@
 #' submitted, the MDP is run on gene subsets. The MDP returns perturbation scores for each gene and each sample.
 #'
 #' @export
-#' @param data A data.frame of gene expression data with the gene symbols in the first column
+#' @param data A data.frame of gene expression data with the gene symbols in the rows
 #' @param pdata A data.frame of phenodata with a column headed Class and the other headed Sample.
 #' @param control_lab A character vector of the control class
 #' @param print Set as default to TRUE if you wish graph pdfs of the geneMDP and sampleMDP values to be printed
@@ -321,6 +321,10 @@ progress("Ranking genesets")
   # make plot for Pathway information
 
 
+  if (!missing(pathways)){
+    if (print == TRUE){
+
+
   pathwayMDP.df$Pathway <- factor(pathwayMDP.df$Pathway, levels = pathwayMDP.df$Pathway[order(pathwayMDP.df$Test.value)])
 
 
@@ -331,22 +335,36 @@ progress("Ranking genesets")
   plot(test)
   dev.off()
 
+    }
+  }
+
 
 
 
   if (print == TRUE){
     # --------------- PLOT: sMDP -------------------#####
 
+
+    if (!missing(pathways)){
     top.pathway <- pathwayMDP.df$Pathway[-match(c("allgenes","perturbedgenes"),pathwayMDP.df$Pathway)][1]
     pathway.names <- c("allgenes","perturbedgenes",as.character(top.pathway))
+    } else {
+      pathway.names <- c("allgenes","perturbedgenes")
+    }
+
+
     pathway.names.idx <- match(pathway.names, names(sMDP.list))
     pathway.names <- make.names(pathway.names)
 
-    for (j in 1:3){
+    for (j in 1:length(pathway.names)){
       smdp.plot(sMDP.data=sMDP.list[[pathway.names.idx[j]]],filename=pathway.names[j],directory=path,title.graph=pathway.names[j])
     }
 
   }
+
+
+
+
 
 
 # ---------------- OUTPUT ---------------- ####
@@ -366,7 +384,7 @@ return(output)
 #' File to read a gmt file and return as a list
 #' @export
 #' @param fname the path to your gene matrix transposed file format (*.gmt) file
-read.gmt <- function(fname){
+read_gmt <- function(fname){
   res <- list(genes=list(),
               desc=list())
   gmt <- file(fname)

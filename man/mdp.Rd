@@ -8,7 +8,7 @@ mdp(data, pdata, control_lab, directory = "", pathways, print = TRUE,
   measure = "median", std = 2)
 }
 \arguments{
-\item{data}{A data.frame of gene expression data with the gene symbols in the first column}
+\item{data}{A data.frame of gene expression data with the gene symbols in the rows}
 
 \item{pdata}{A data.frame of phenodata with a column headed Class and the other headed Sample.}
 
