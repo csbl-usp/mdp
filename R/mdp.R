@@ -343,7 +343,7 @@ progress("Ranking genesets")
     pathway.names <- make.names(pathway.names)
 
     for (j in 1:3){
-      plot.smdp(sMDP.data=sMDP.list[[pathway.names.idx[j]]],filename=pathway.names[j],directory=path,title.graph=pathway.names[j])
+      smdp.plot(sMDP.data=sMDP.list[[pathway.names.idx[j]]],filename=pathway.names[j],directory=path,title.graph=pathway.names[j])
     }
 
   }
@@ -392,7 +392,7 @@ read.gmt <- function(fname){
 #' @param filename filename
 #' @param directory directory to save file
 #' @param title.graph title name for graph
-plot.smdp <- function(sMDP.data,filename="",directory="",title.graph=""){
+smdp.plot <- function(sMDP.data,filename="",directory="",title.graph=""){
 
   if (directory != ""){
     path = directory
