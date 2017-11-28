@@ -161,7 +161,7 @@ write.table(x=Zscore.nonabsolute,file=file.path(path,"Zscore.tsv"),row.names=F)
 
 # --------------- FIND MDP FOR GROUPS --------- ####
 # Calculate gMDP score
-Zgroups.list <- lapply(idx, function(x) rowSums(Zscore[,x])/length(x)) # calculates gMDP for each gene in each class
+Zgroups.list <- lapply(idx, function(x) rowSums(Zscore[,x,drop = FALSE])/length(x)) # calculates gMDP for each gene in each class
 Zgroups <- abs(matrix(unlist(Zgroups.list), ncol=nGroups))   #
 colnames(Zgroups) <- paste("gMDP",names(idx),sep="_")
 rownames(Zgroups) <- rownames(Zscore)
@@ -170,7 +170,7 @@ Zgroups.annotated <- data.frame("Symbol" = Zscore.annotated[,"Symbol"], Zgroups)
 gMDP.ref <- Zgroups.annotated[,paste("gMDP_",control_lab,sep="")]
 
 # Calculate the frequency of perturbation
-Zgroups.np.list <- lapply(idx, function(x) rowSums((Zscore[,x] > 0))/length(x)) # calculates gMDP for each gene in each class
+Zgroups.np.list <- lapply(idx, function(x) rowSums((Zscore[,x, drop = FALSE] > 0))/length(x)) # calculates gMDP for each gene in each class
 Zgroups.np <- abs(matrix(unlist(Zgroups.np.list), ncol=nGroups))   #
 colnames(Zgroups.np) <- paste("freq",names(idx),sep="_")
 rownames(Zgroups.np) <- rownames(Zscore)
