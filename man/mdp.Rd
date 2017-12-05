@@ -8,7 +8,7 @@ mdp(data, pdata, control_lab, directory = "", pathways, print = TRUE,
   measure = "median", std = 2)
 }
 \arguments{
-\item{data}{A data.frame of gene expression data with the gene symbols in the rows}
+\item{data}{A data.frame of gene expression data with the gene symbols in the rows, sample names in columns.}
 
 \item{pdata}{A data.frame of phenodata with a column headed Class and the other headed Sample.}
 
@@ -16,7 +16,7 @@ mdp(data, pdata, control_lab, directory = "", pathways, print = TRUE,
 
 \item{directory}{The output directory (optional)}
 
-\item{pathways}{The location of a gmt file (optional)}
+\item{pathways}{A loaded gmt file in a list format (optional), use read_gmt("gmt.file.location") to load}
 
 \item{print}{Set as default to TRUE if you wish graph pdfs of the geneMDP and sampleMDP values to be printed}
 
@@ -32,6 +32,9 @@ Based on the Molecular Distance to Health, this function allows the inspection o
 submitted, the MDP is run on gene subsets. The MDP returns perturbation scores for each gene and each sample.
 }
 \examples{
+basic usage:
 mdp(exp,pheno,"healthy_control")
-mdp(exp,pheno,"healthy_control",print=TRUE,directory="myexp",pathways="mypathways.gmt")
+with gmt:
+mypathway <- read_gmt("gmt.file.location")
+mdp(exp,pheno,"healthy_control",print=TRUE,directory="myexp",pathways=mypathway)
 }

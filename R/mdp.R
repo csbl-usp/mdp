@@ -4,17 +4,20 @@
 #' submitted, the MDP is run on gene subsets. The MDP returns perturbation scores for each gene and each sample.
 #'
 #' @export
-#' @param data A data.frame of gene expression data with the gene symbols in the rows
+#' @param data A data.frame of gene expression data with the gene symbols in the rows, sample names in columns.
 #' @param pdata A data.frame of phenodata with a column headed Class and the other headed Sample.
 #' @param control_lab A character vector of the control class
 #' @param print Set as default to TRUE if you wish graph pdfs of the geneMDP and sampleMDP values to be printed
 #' @param directory The output directory (optional)
-#' @param pathways The location of a gmt file (optional)
+#' @param pathways A loaded gmt file in a list format (optional), use read_gmt("gmt.file.location") to load
 #' @param measure Set as default to "median", can be changed to "mean". This measure is used in all Z-score calculations.
 #' @param std Set as default to 2. This controls the standard deviation threshold for the Z-score calculation. Normalised expression values less than "std" will be set to 0.
 #' @return A list where [[1]] $Zscore contains a table of Z scores, [[2]] $gMDP contains gMDP scores and [[3]] $sMDP are the sampleMDP scores
+#' @examples basic usage:
 #' @examples mdp(exp,pheno,"healthy_control")
-#' @examples mdp(exp,pheno,"healthy_control",print=TRUE,directory="myexp",pathways="mypathways.gmt")
+#' @examples with gmt:
+#' @examples mypathway <- read_gmt("gmt.file.location")
+#' @examples mdp(exp,pheno,"healthy_control",print=TRUE,directory="myexp",pathways=mypathway)
 mdp <- function(data,pdata,control_lab,directory="",pathways,print=TRUE,measure="median",std=2){
 
 
@@ -208,12 +211,13 @@ genes <- genes[1:round(length(genes)/4)]
 # geneset1 = all genes, geneset2 = perturbed genes, rest = pathways
 genesets <- list()
 genesets[[1]] <- rownames(Zscore)
-genesets[[2]] <-  genes
-names(genesets)[1:2] <- c("allgenes","perturbedgenes")
+#genesets[[2]] <-  genes
+#names(genesets)[1:2] <- c("allgenes","perturbedgenes")
+names(genesets)[1] <- "allgenes"
 if (!missing(pathways)){
   genesets <- c(genesets,pathways)
 }
-names(genesets)[1:2] <- c("allgenes","perturbedgenes")
+
 
 
 # ------ find sMDP scores for gene subsets ---------------#####
@@ -346,10 +350,10 @@ progress("Ranking genesets")
 
 
     if (!missing(pathways)){
-    top.pathway <- pathwayMDP.df$Pathway[-match(c("allgenes","perturbedgenes"),pathwayMDP.df$Pathway)][1]
-    pathway.names <- c("allgenes","perturbedgenes",as.character(top.pathway))
+    top.pathway <- pathwayMDP.df$Pathway[-match(c("allgenes"),pathwayMDP.df$Pathway)][1]
+    pathway.names <- c("allgenes",as.character(top.pathway))
     } else {
-      pathway.names <- c("allgenes","perturbedgenes")
+      pathway.names <- c("allgenes")
     }
 
 
