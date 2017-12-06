@@ -5,7 +5,7 @@
 \title{Molecular Degree of Perturbation}
 \usage{
 mdp(data, pdata, control_lab, directory = "", pathways, print = TRUE,
-  measure = "median", std = 2)
+  measure = "median", std = 2, save_tables = TRUE)
 }
 \arguments{
 \item{data}{A data.frame of gene expression data with the gene symbols in the rows, sample names in columns.}
@@ -23,6 +23,8 @@ mdp(data, pdata, control_lab, directory = "", pathways, print = TRUE,
 \item{measure}{Set as default to "median", can be changed to "mean". This measure is used in all Z-score calculations.}
 
 \item{std}{Set as default to 2. This controls the standard deviation threshold for the Z-score calculation. Normalised expression values less than "std" will be set to 0.}
+
+\item{save_tables}{Set as default to TRUE. Will save tables of gene and sample scores.}
 }
 \value{
 A list where [[1]] $Zscore contains a table of Z scores, [[2]] $gMDP contains gMDP scores and [[3]] $sMDP are the sampleMDP scores

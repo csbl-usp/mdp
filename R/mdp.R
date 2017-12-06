@@ -12,13 +12,14 @@
 #' @param pathways A loaded gmt file in a list format (optional), use read_gmt("gmt.file.location") to load
 #' @param measure Set as default to "median", can be changed to "mean". This measure is used in all Z-score calculations.
 #' @param std Set as default to 2. This controls the standard deviation threshold for the Z-score calculation. Normalised expression values less than "std" will be set to 0.
+#' @param save_tables Set as default to TRUE. Will save tables of gene and sample scores.
 #' @return A list where [[1]] $Zscore contains a table of Z scores, [[2]] $gMDP contains gMDP scores and [[3]] $sMDP are the sampleMDP scores
 #' @examples basic usage:
 #' @examples mdp(exp,pheno,"healthy_control")
 #' @examples with gmt:
 #' @examples mypathway <- read_gmt("gmt.file.location")
 #' @examples mdp(exp,pheno,"healthy_control",print=TRUE,directory="myexp",pathways=mypathway)
-mdp <- function(data,pdata,control_lab,directory="",pathways,print=TRUE,measure="median",std=2){
+mdp <- function(data,pdata,control_lab,directory="",pathways,print=TRUE,measure="median",std=2,save_tables = TRUE){
 
 
 # --------------- FUNCTIONS - CALCULATE Z SCORE AND CALCULATE CONTROL STATS --- ###
@@ -159,8 +160,9 @@ Zscore <- abs(Zscore)
 Zscore.annotated <- data.frame("Symbol" = rownames(Zscore), Zscore)
 
 # print Z score
+if (save_tables == T){
 write.table(x=Zscore.nonabsolute,file=file.path(path,"Zscore.tsv"),row.names=F)
-
+}
 
 # --------------- FIND MDP FOR GROUPS --------- ####
 # Calculate gMDP score
@@ -211,9 +213,8 @@ genes <- genes[1:round(length(genes)/4)]
 # geneset1 = all genes, geneset2 = perturbed genes, rest = pathways
 genesets <- list()
 genesets[[1]] <- rownames(Zscore)
-#genesets[[2]] <-  genes
-#names(genesets)[1:2] <- c("allgenes","perturbedgenes")
-names(genesets)[1] <- "allgenes"
+genesets[[2]] <- genes
+names(genesets)[1:2] <- c("allgenes","perturbedgenes")
 if (!missing(pathways)){
   genesets <- c(genesets,pathways)
 }
@@ -257,9 +258,9 @@ progress("Generating gMDP scores")
 
 
   # write table gMDP
-
+if (save_tables == T){
   write.table(x=Zgroups.annotated,file=file.path(path,"gMDPscore.tsv"),row.names=F)
-
+}
 if (print == TRUE){
 
     Zgroups.ranked <- cbind("order" = seq(1:nrow(Zgroups.annotated)),Zgroups.annotated)
@@ -320,8 +321,9 @@ progress("Ranking genesets")
   pathwayMDP.df <- pathwayMDP.df[order(-pathwayMDP.df$Rank),]
 
   # write table
+  if (save_tables == T){
   write.table(x=pathwayMDP.df,file=file.path(path,"sMDPscores.tsv"),row.names=F)
-
+  }
   # make plot for Pathway information
 
 
@@ -350,10 +352,10 @@ progress("Ranking genesets")
 
 
     if (!missing(pathways)){
-    top.pathway <- pathwayMDP.df$Pathway[-match(c("allgenes"),pathwayMDP.df$Pathway)][1]
-    pathway.names <- c("allgenes",as.character(top.pathway))
+    top.pathway <- pathwayMDP.df$Pathway[-match(c("allgenes","perturbedgenes"),pathwayMDP.df$Pathway)][1]
+    pathway.names <- c("allgenes","perturbedgenes",as.character(top.pathway))
     } else {
-      pathway.names <- c("allgenes")
+      pathway.names <- c("allgenes","perturbedgenes")
     }
 
 
@@ -372,8 +374,8 @@ progress("Ranking genesets")
 
 
 # ---------------- OUTPUT ---------------- ####
-output <-list(Zscore.annotated,Zgroups.annotated,sMDP.list,pathwayMDP.df)
-names(output) <- c("Zscore","gMDP","sMDP","pathways")
+output <-list(Zscore.annotated,Zgroups.annotated,sMDP.list,pathwayMDP.df,genes)
+names(output) <- c("Zscore","gMDP","sMDP","pathways","perturbedgenes")
 
 
 
