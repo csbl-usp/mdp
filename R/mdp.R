@@ -208,7 +208,7 @@ Zgroups.ranked <- cbind("order" = seq(1:nrow(Zgroups.annotated)),Zgroups.annotat
 #genes <- Zgroups.ranked$Symbol[rowSums(score) > 0]
 #genes <- genes[1:round(length(genes)/4)]
 
-genes <- Zgroups.ranked$Symbol[1:round(dim(Zgroups.ranked)[1]/10)]
+genes <- Zgroups.ranked$Symbol[1:round(dim(Zgroups.ranked)[1]/4)]
 
 
 
