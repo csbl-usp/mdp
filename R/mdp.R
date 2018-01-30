@@ -205,8 +205,12 @@ Zgroups.annotated <- Zgroups.annotated[order(-rowSums(score)),]
 Zgroups.ranked <- cbind("order" = seq(1:nrow(Zgroups.annotated)),Zgroups.annotated)
 
 # find the top perturbed genes
-genes <- Zgroups.ranked$Symbol[rowSums(score) > 0]
-genes <- genes[1:round(length(genes)/4)]
+#genes <- Zgroups.ranked$Symbol[rowSums(score) > 0]
+#genes <- genes[1:round(length(genes)/4)]
+
+genes <- Zgroups.ranked$Symbol[1:round(dim(Zgroups.ranked)[1]/10)]
+
+
 
 
 # --------------- FIND sMDP FOR ALL GENE SETs --------------------#####
