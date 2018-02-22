@@ -4,7 +4,7 @@
 #' submitted, the MDP is run on gene subsets. The MDP returns perturbation scores for each gene and each sample.
 #'
 #' @export
-#' @param data A data.frame of gene expression data with the gene symbols in the rows, sample names in columns.
+#' @param data A data.frame of gene expression data with the gene symbols in the row names
 #' @param pdata A data.frame of phenodata with a column headed Class and the other headed Sample.
 #' @param control_lab A character vector of the control class
 #' @param print Set as default to TRUE if you wish graph pdfs of the geneMDP and sampleMDP values to be printed
@@ -12,64 +12,16 @@
 #' @param pathways A loaded gmt file in a list format (optional), use read_gmt("gmt.file.location") to load
 #' @param measure Set as default to "median", can be changed to "mean". This measure is used in all Z-score calculations.
 #' @param std Set as default to 2. This controls the standard deviation threshold for the Z-score calculation. Normalised expression values less than "std" will be set to 0.
-#' @param save_tables Set as default to TRUE. Will save tables of gene and sample scores.
-#' @return A list where [[1]] $Zscore contains a table of Z scores, [[2]] $gMDP contains gMDP scores and [[3]] $sMDP are the sampleMDP scores
+#' @param save_tables Set as default to TRUE. Will save tables of zscore and gene and sample scores.
+#' @return A list: [[1]] $zscore [[2]] $gene_scores  [[3]] $gene_freq [[4]] $sample_scores [[5]] perturbed_genes
 #' @examples basic usage:
-#' @examples mdp(exp,pheno,"healthy_control")
-#' @examples with gmt:
-#' @examples mypathway <- read_gmt("gmt.file.location")
-#' @examples mdp(exp,pheno,"healthy_control",print=TRUE,directory="myexp",pathways=mypathway)
-mdp <- function(data,pdata,control_lab,directory="",pathways,print=TRUE,measure="median",std=2,save_tables = TRUE){
-
-
-# --------------- FUNCTIONS - CALCULATE Z SCORE AND CALCULATE CONTROL STATS --- ###
-
-  Z <- function(exp,health,std){
-    # COMPUTE THE Z SCORE NORMALISED BY CONTROLS
-    # exp <- column vector of expression values per sample, rows = genes
-    # health <- mean of controls in first column, SD of controls in second column
-    # n <- if Z is less than n standard deviations, set to NA
-    z   <- (exp-health[,1])/health[,2]
-    z[abs(z)<std] <- 0
-
-    return(z)
-  }
-
-  GetMeanSD <- function(xx,measure) {
-    controlData <- vector()
-
-    xx <- as.numeric(xx)
-    ncontrol  <- length(xx)
-
-    if (measure == "mean"){
-      meanX <- mean(xx,na.rm=TRUE)
-    }
-    else if (measure == "median"){
-	    meanX  <- median(xx,na.rm=T)
-    }
-
-
-   sdX   <- sd(xx,na.rm=TRUE)
-
-  controlData <- as.numeric(c(meanX,sdX))
-  names(controlData) <- c("Mean","sd")
-  return(controlData)
-  }
-
-
-
-new_progress <- function(n_steps, nth_step=0) {
-	return(function(msg){
-		nth_step <<- nth_step + 1
-		cat(nth_step, "/", n_steps, ": ", msg, "\n", sep="")
-	})
-}
-
+#' mdp(exp,pheno,"healthy_control")
+#' mypathway <- read_gmt("gmt.file.location")
+#' mdp(exp,pheno,"healthy_control",print=TRUE,directory="myexp",pathways=mypathway)
+mdp <- function(data,pdata,control_lab,directory="",pathways,print=TRUE,measure="mean",std=2,fraction_genes = 0.25,save_tables = TRUE,file_name=""){
 
 
 # ---------- create directory ---------------------------------#######
-
-
 if (directory != ""){
   path = directory
   if (dir.exists(directory) == F){
@@ -78,6 +30,14 @@ if (directory != ""){
 } else {
   path = "."
 }
+
+if (print == T){
+progress <- progress_bar(4)
+} else {
+progress <- progress_bar(3)
+}
+
+
 
 # --------------------- ORGANISE DATA -------------------------------------#######
 if (missing(pdata)){
@@ -93,322 +53,137 @@ if (missing(pdata)){
 }
 if (missing(data)){
   stop("Please include expression data")
-} else if (!all(apply(data,2,is.numeric))){
+} else if (!all(apply(data[,],2,is.numeric))){
   stop("Please provide numeric values in expression data columns")
+}
+if (fraction_genes > 1){
+  stop("Select a gene fraction of less than 1")
+}
+if (!missing(pathways)){
+  if (!is.list(pathways)){
+    stop("Please provide pathways in a list format")
+   }
 }
 
 pdata <- pdata[as.character(pdata$Sample) %in% colnames(data),]  # Only keep the samples that have both pdata and data
 rownames(pdata) <- pdata$Sample
 data <- data[,as.character(pdata$Sample)]  # Expression data has c(1) and samples
 
-progress <- new_progress(5)
+control_samples <- pdata$Sample[pdata$Class == control_lab]
+test_samples <- pdata$Sample[pdata$Class != control_lab]
 
 
-# --------------- ORGANISE GROUPS AND CONTROLS FROM PHENO DATA -------------- ####
-nGroups <- length(unique(pdata$Class))
-idx <- list() # list of which indexes in pdata match each class type
-for (i in 1:nGroups){
-  idx[[i]] <- which(pdata$Class == unique(pdata$Class)[i])
-  if (unique(pdata$Class)[i] == control_lab){
-  control_idx <- i
-  }
-}
-names(idx) <- unique(pdata$Class)
+# find mean and sd ---------------- #####
+progress("Calculating Z score")
 
-
-# ----------- FIND MEAN, SD FOR HEALTHY CONTROLS
-progress("Computing Z-score for contrast samples")
-
-
-dataHealth <- t(apply(data[,idx[[control_idx]]],1,function(x) {
-  GetMeanSD(as.numeric(x),measure)}))
-
-
-
-# --------------- COMPUTE Z SCORE ------------------------- ####
-
-progress("Computing Z-score for reference samples")
-
-N <- 1 # min number of standard deviations that are accepted
-
-# Z score for all samples apart from controls
-Zscore <- matrix(nrow=nrow(data), ncol=ncol(data))
-rownames(Zscore) <- rownames(data)
-
-colnames(Zscore) <- names(data)
-Zscore[,-idx[[control_idx]]] <- apply(data[,-idx[[control_idx]]] ,2,function(x) Z(x,dataHealth,std))
-
-# Z score for controls using leave-one-out
-Zscore[,idx[[control_idx]]] <- sapply(1:length(idx[[control_idx]]), function(x) {
-  # calculate mean using leave-one out
-    dataHealthSubset.mean <- t(apply(data[, idx[[control_idx]][-x]],1,function(j) {
-      GetMeanSD(as.numeric(j),measure)}))
-  # calculate standard deviation using all of the control samples
-    dataHealthSubset.sd <- t(apply(data[, idx[[control_idx]]],1,function(j) {
-      GetMeanSD(as.numeric(j),measure)}))
-
-    dataHealthSubset <- cbind(dataHealthSubset.mean[,1], dataHealthSubset.sd[,2])
-
-  return(Z(data[,idx[[control_idx]][x]],dataHealthSubset,std))
-})
-
-
-Zscore <- Zscore[!is.infinite(rowSums(Zscore)),]
-Zscore <- Zscore[!is.na(rowSums(Zscore)),]
-Zscore.nonabsolute <- data.frame("Symbol" = rownames(Zscore), Zscore)
-Zscore <- abs(Zscore)
-Zscore.annotated <- data.frame("Symbol" = rownames(Zscore), Zscore)
-
-# print Z score
-if (save_tables == T){
-write.table(x=Zscore.nonabsolute,file=file.path(path,"Zscore.tsv"),row.names=F)
+if (measure == "mean"){
+  stats = data.frame("mean" = rowMeans(data[,control_samples]), "std" = apply(data[,control_samples],1,sd))
+} else if (measure == "median"){
+  stats = data.frame("mean" = apply(data[,control_samples],1,median), "std" = apply(data[,control_samples],1,mad) * (1 / 0.6745) )
 }
 
-# --------------- FIND MDP FOR GROUPS --------- ####
-# Calculate gMDP score
-Zgroups.list <- lapply(idx, function(x) rowSums(Zscore[,x,drop = FALSE])/length(x)) # calculates gMDP for each gene in each class
-Zgroups <- abs(matrix(unlist(Zgroups.list), ncol=nGroups))   #
-colnames(Zgroups) <- paste("gMDP",names(idx),sep="_")
-rownames(Zgroups) <- rownames(Zscore)
-Zgroups.annotated <- data.frame("Symbol" = Zscore.annotated[,"Symbol"], Zgroups)
+# compute Z score ------------------######
+zscore <-(data - stats[, 1]) / stats[, 2]
+zscore <- zscore[!is.infinite(rowSums(zscore)),]
+zscore <- zscore[!is.na(rowSums(zscore)),]
+zscore <- abs(zscore)
+zscore[zscore < std] <- 0
+zscore <- data.frame("Symbol" = rownames(data), zscore)
 
-gMDP.ref <- Zgroups.annotated[,paste("gMDP_",control_lab,sep="")]
+# gene MDP for each group ---------------- #######
+progress("Calculating gene scores")
 
-# Calculate the frequency of perturbation
-Zgroups.np.list <- lapply(idx, function(x) rowSums((Zscore[,x, drop = FALSE] > 0))/length(x)) # calculates gMDP for each gene in each class
-Zgroups.np <- abs(matrix(unlist(Zgroups.np.list), ncol=nGroups))   #
-colnames(Zgroups.np) <- paste("freq",names(idx),sep="_")
-rownames(Zgroups.np) <- rownames(Zscore)
-Zgroups.annotated <- data.frame(Zgroups.annotated,Zgroups.np)
+all_groups <- unique(pdata$Class) # find all groups
+groups_no_control <- all_groups[-grep(control_lab,all_groups)] # groups without control label
 
-gMDP.np.ref <- Zgroups.np[,paste("freq_",control_lab,sep="")]
+gmdp_results <- rownames(data) # tables to save the gene scores and gene freq scores
+gmdp_freq_results <- rownames(data)
+for (group in all_groups){
 
-# Calculate the score -> (gMDP - gMDPcontrol)*(freq - freqcontrol), if (g - gc) and (f - fc) > 0
-gMDP.score <- Zgroups - gMDP.ref
-np.score <- Zgroups.np - gMDP.np.ref
+  gene_average <- rowMeans(zscore[,as.character(pdata$Sample[pdata$Class == group])]) # find average expression of gene in each group
+  gene_freq <- rowMeans(zscore[,as.character(pdata$Sample[pdata$Class == group])] > 0)
 
-# make data frame of normalised gMDP and freq scores
-gene.df <- data.frame()
-for (i in 1:dim(gMDP.score)[2]){
-  gene.df <- rbind(gene.df,data.frame("Gene" = rownames(gMDP.score), "gMDP" = gMDP.score[,i], "Freq" = np.score[,i], "Disease" = gsub("gMDP_","",colnames(gMDP.score)[i])))
+  gmdp_results <- data.frame(gmdp_results, gene_average)
+  gmdp_freq_results <-data.frame(gmdp_freq_results, gene_freq)
+
 }
-gene.df <- gene.df[!(gene.df$Disease == control_lab),]
 
-gMDP.score[gMDP.score < 0] <- 0
-np.score[np.score < 0] <- 0
-score <- gMDP.score*np.score
-colnames(score) <- paste("score",names(idx),sep="_")
+names(gmdp_freq_results) <- c("Symbol",as.character(all_groups))
+colnames(gmdp_results) <- c("Symbol",as.character(all_groups))
 
-Zgroups.annotated <- data.frame(Zgroups.annotated,score)
-Zgroups.annotated <- Zgroups.annotated[,-grep(paste("score_",control_lab,sep=""),names(Zgroups.annotated))] # remove control score
-Zgroups.annotated <- Zgroups.annotated[order(-rowSums(score)),]
-Zgroups.ranked <- cbind("order" = seq(1:nrow(Zgroups.annotated)),Zgroups.annotated)
+# find perturbed genes --------------------- #######
 
-# find the top perturbed genes
-#genes <- Zgroups.ranked$Symbol[rowSums(score) > 0]
-#genes <- genes[1:round(length(genes)/4)]
+gmdp_results <- transform(gmdp_results, perturbation = rowSums(gmdp_results[, as.character(groups_no_control),drop=FALSE] ) - ( length(groups_no_control) * gmdp_results[, control_lab] ) )
+gmdp_results <- gmdp_results[order(-gmdp_results$perturbation),]
+perturbed_genes <- gmdp_results$Symbol[1:round(fraction_genes*dim(gmdp_results)[1])]
 
-genes <- Zgroups.ranked$Symbol[1:round(dim(Zgroups.ranked)[1]/4)]
+# sample MDP scores -------------------------- ########
+progress("Calculating sample scores")
 
-
-
-
-# --------------- FIND sMDP FOR ALL GENE SETs --------------------#####
-# geneset1 = all genes, geneset2 = perturbed genes, rest = pathways
-genesets <- list()
-genesets[[1]] <- rownames(Zscore)
-genesets[[2]] <- genes
+genesets <- list() # list of all gene sets
+genesets[[1]] <- rownames(data)
+genesets[[2]] <- perturbed_genes
 names(genesets)[1:2] <- c("allgenes","perturbedgenes")
 if (!missing(pathways)){
   genesets <- c(genesets,pathways)
 }
 
-
-
-# ------ find sMDP scores for gene subsets ---------------#####
-progress("Calculating sMDP scores")
-
-Zsamples.list <- data.frame()
-sMDP.list <- list()
-for(s in 1:length(genesets)){
-
-  Zscore.annotated.sub <- Zscore.annotated[genesets[[s]],]
-  Zsamples <- colSums(Zscore.annotated.sub[,-c(1)], na.rm=T)/nrow(Zscore.annotated.sub)
-
-  Zsamples.df <- data.frame("Sample" = names(Zsamples), "sMDP" = Zsamples, "Class" = pdata[names(Zsamples),"Class"], "Perturbed"  = "Unperturbed",stringsAsFactors=FALSE)
-  Zsamples.list <- rbind(Zsamples.list,Zsamples.df$sMDP)
-  # find mean and standard deviation of healthy samples
-  healthy.mean <- GetMeanSD(Zsamples[idx[[control_idx]]],measure)
-  Zsamples.df$Thresh <- rep(healthy.mean[1] + healthy.mean[[2]],length(Zsamples))
-
-  # leave one out for healthy
-  leave.out.mean <- sapply(1:length(idx[[control_idx]]), function(x,y) (GetMeanSD(y[idx[[control_idx]][-x],"sMDP"],measure)), y=Zsamples.df)
-  Zsamples.df[idx[[control_idx]],"Thresh"] <- leave.out.mean[1,] + healthy.mean[2]
-
-  # mark perturbed samples
-  Zsamples.df[Zsamples.df$sMDP >= Zsamples.df$Thresh,"Perturbed"] <- "Perturbed"
-  sMDP.list[[s]] <- Zsamples.df
-
+sample_results <- data.frame() # calculate sample scores for all genesets
+for (idx in 1:length(genesets)){
+  sample_scores <- colMeans(zscore[zscore$Symbol %in% genesets[[idx]],2:ncol(zscore)]) # average gene expression for each sample
+  signal_noise <- ( mean(sample_scores[test_samples]) - mean(sample_scores[control_samples]) ) /  ( sd(sample_scores[test_samples]) - sd(sample_scores[control_samples]) ) # signal to noise score
+  sample_results <- rbind(sample_results, data.frame("Sample" = names(sample_scores),
+                                                     "Score" = sample_scores,
+                                                     "Class" = pdata[names(sample_scores),"Class"],
+                                                     "Geneset" = names(genesets)[idx],
+                                                     "Sig2noise" = signal_noise))
 }
 
-names(Zsamples.list) <- Zsamples.df$Sample
-names(sMDP.list) <- names(genesets)
+if (print == T){
+progress("printing")
 
-
-# --------------- PLOT: gMDP FOR ALL GENES and genesets--------------------####
-
-
-progress("Generating gMDP scores")
-
-
-  # write table gMDP
-if (save_tables == T){
-  write.table(x=Zgroups.annotated,file=file.path(path,"gMDPscore.tsv"),row.names=F)
-}
-if (print == TRUE){
-
-    Zgroups.ranked <- cbind("order" = seq(1:nrow(Zgroups.annotated)),Zgroups.annotated)
-    # print frequency versus gMDP score for all genes
-    ngenes <- nrow(Zgroups.ranked)
-    Zgroups.plot <- data.frame(matrix(nrow = nGroups*ngenes, ncol = 4)) # construct a matrix of dim (ngenes*classes)*3, cols show gene Order, gMDP, Class,  frac perturbed
-
-    for (i in 1:nGroups){
-      Zgroups.plot[(ngenes*(i-1)+1):(ngenes*i),1:3] <- Zgroups.ranked[,c(1,i+2, i+2+nGroups)]
-      Zgroups.plot[(ngenes*(i-1)+1):(ngenes*i),4] <- rep(colnames(Zgroups.ranked)[i+2],ngenes)
-    }
-    names(Zgroups.plot) <- c("Order","gMDP","fracPerturbed","Class")
-    head(Zgroups.plot)
-    Zgroups.plot$Class <- factor(Zgroups.plot$Class)
-
-    pdf(file.path(path,"geneMDPfreq.pdf"))
-    test <-  ggplot2::ggplot(Zgroups.plot, ggplot2::aes(x=fracPerturbed, y=gMDP, alpha=1, colour=Class, group=Class)) +  ggplot2::geom_jitter(alpha=0.3, size=3) +
-     ggplot2::theme_bw() + #+  #geom_line(ggplot2::aes(linetype = factor(State)))
-       #geom_smooth(alpha=.2, size=1) + ggplot2::theme_bw() + #+  #geom_line(ggplot2::aes(linetype = factor(State)))
-     ggplot2::labs(title="gMDP vs. fraction of samples gene perturbed in", x="Fraction of samples in which gene is perturbed", y = "gMDP score") + ggplot2::guides(alpha = FALSE)
-    plot(test)
-    dev.off()
-
-    # print gMDP score
- #   pdf(file.path(folder.path,"geneMDP.pdf"))
-#    test2 <-  ggplot2::ggplot(Zgroups.plot, ggplot2::aes(x=Order, y=gMDP, alpha=1, colour=Class, group=Class)) +  ggplot2::geom_jitter(alpha=0.2, size=3) +
- #    ggplot2::theme_bw() + #+  #geom_line(ggplot2::aes(linetype = factor(State)))
-  #     #geom_smooth(alpha=.2, size=1) + ggplot2::theme_bw() + #+  #geom_line(ggplot2::aes(linetype = factor(State)))
-  #   ggplot2::labs(title="gMDP for each class", x="Genes", y = "gMDP score") + ggplot2::guides(alpha = FALSE)
-  #  plot(test2)
-  #  dev.off()
-
-}
-
-# ------------------------- GENE SET ANALYSIS for pathways ------------ #####
-
-
-progress("Ranking genesets")
-
- 	# Calculate the number of genes in each pathway
-	geneNumber <- lapply(1:length(genesets), function(x) length(genesets[[x]]))
-	geneNumber <- unlist(geneNumber)
-
-	overlapNumber <- lapply(1:length(genesets), function(x,y) sum(y %in% genesets[[x]]), y=Zscore.annotated$Symbol)
-	overlapNumber <- unlist(overlapNumber)
-
-
-	pathwayMDP.df <- data.frame("Pathway"= names(genesets),"Rank"=rep(NA,length(genesets)), "Test.value"=rep(NA,length(genesets)), "Pathway.size" = geneNumber, "Genes.in.data" = overlapNumber, Zsamples.list)
-
-	smdp.h <- as.matrix(Zsamples.list[,pdata$Sample[pdata$Class == control_lab]])
-	smdp.p <- as.matrix(Zsamples.list[,pdata$Sample[pdata$Class != control_lab]])
-
-
-
- 	pathwayMDP.df$Test.value <-  sapply(1:(dim(smdp.h)[1]),function(x) (mean(smdp.p[x,])-mean(smdp.h[x,]))/(sd(smdp.h[x,], na.rm=T) + sd(smdp.p[x,], na.rm = T)))
-
-	pathwayMDP.df$Rank <- rank(pathwayMDP.df$Test.value,ties.method="min", na.last = "keep")
-  pathwayMDP.df <- pathwayMDP.df[order(-pathwayMDP.df$Rank),]
-
-  # write table
-  if (save_tables == T){
-  write.table(x=pathwayMDP.df,file=file.path(path,"sMDPscores.tsv"),row.names=F)
-  }
-  # make plot for Pathway information
-
-
-  if (!missing(pathways)){
-    if (print == TRUE){
-
-
-  pathwayMDP.df$Pathway <- factor(pathwayMDP.df$Pathway, levels = pathwayMDP.df$Pathway[order(pathwayMDP.df$Test.value)])
-
-
-  pdf(file.path(path,"geneset_summary.pdf"))
-  test <- ggplot2::ggplot(pathwayMDP.df, ggplot2::aes(x=Pathway, y=Test.value)) +  ggplot2::geom_bar(stat = "identity") +
-    ggplot2::theme_bw() + ggplot2::coord_flip() +
-    ggplot2::labs(title="Pathway summary", x="Pathways", y = "Signal to noise ratio of control versus non-control sample sMDP scores")
-  plot(test)
-  dev.off()
-
-    }
-  }
-
-
-
-
-  if (print == TRUE){
-    # --------------- PLOT: sMDP -------------------#####
-
+  smdp_plot(sample_results[sample_results$Geneset == "allgenes",],filename=paste0(file_name,"allgenes"),directory=path,title="allgenes")
+  smdp_plot(sample_results[sample_results$Geneset == "perturbedgenes",],filename=paste0(file_name,"perturbed"),directory=path,title="perturbedgenes")
 
     if (!missing(pathways)){
-    top.pathway <- pathwayMDP.df$Pathway[-match(c("allgenes","perturbedgenes"),pathwayMDP.df$Pathway)][1]
-    pathway.names <- c("allgenes","perturbedgenes",as.character(top.pathway))
-    } else {
-      pathway.names <- c("allgenes","perturbedgenes")
+      pathway_scores <- sample_results[,c("Geneset","Sig2noise")]
+      pathway_scores <- unique(pathway_scores)
+      pathway_scores <- pathway_scores[order(-pathway_scores$Sig2noise),]
+      top_pathway <- pathway_scores[1,"Geneset"]
+
+      pdf(file.path(path,"geneset_summary.pdf"))
+      test <- ggplot2::ggplot(pathway_scores, ggplot2::aes(x=Geneset, y=Sig2noise)) +  ggplot2::geom_bar(stat = "identity") +
+      ggplot2::theme_bw() + ggplot2::coord_flip() +
+      ggplot2::labs(title="Pathway summary", x="Pathways", y = "Signal to noise ratio of control versus non-control sample sMDP scores")
+      plot(test)
+      dev.off()
+
+      if ( top_pathway != "allgenes" &  top_pathway != "perturbedgenes"){
+      smdp_plot(sample_results[sample_results$Geneset == top_pathway,],filename=paste0(file_name,"_",top_pathway),directory=path,title=top_pathway)
+      }
+
     }
 
+}
 
-    pathway.names.idx <- match(pathway.names, names(sMDP.list))
-    pathway.names <- make.names(pathway.names)
+if (save_tables == T){
 
-    for (j in 1:length(pathway.names)){
-      smdp.plot(sMDP.data=sMDP.list[[pathway.names.idx[j]]],filename=pathway.names[j],directory=path,title.graph=pathway.names[j])
-    }
-
-  }
+  write.table(x=zscore,file=file.path(path,paste0(file_name,"zscore.tsv")),row.names=F)
+  write.table(x=gmdp_results,file=file.path(path,paste0(file_name,"gene_scores.tsv")),row.names=F)
+  write.table(x=sample_results,file=file.path(path,paste0(file_name,"sample_scores.tsv")),row.names=F)
 
 
-
-
-
+}
 
 # ---------------- OUTPUT ---------------- ####
-output <-list(Zscore.annotated,Zgroups.annotated,sMDP.list,pathwayMDP.df,genes)
-names(output) <- c("Zscore","gMDP","sMDP","pathways","perturbedgenes")
+output <-list(zscore,gmdp_results,gmdp_freq_results,sample_results,perturbed_genes)
+names(output) <- c("zscore","gene_scores","gene_freq","sample_scores","perturbed_genes")
 
 
 
 return(output)
 }
 
-
-
-
-#' Read gmt
-#'
-#' File to read a gmt file and return as a list
-#' @export
-#' @param fname the path to your gene matrix transposed file format (*.gmt) file
-read_gmt <- function(fname){
-  res <- list(genes=list(),
-              desc=list())
-  gmt <- file(fname)
-  gmt.lines <- readLines(gmt)
-  close(gmt)
-  gmt.list <- lapply(gmt.lines,
-                     function(x) unlist(strsplit(x, split="\t")))
-  gmt.names <- sapply(gmt.list, '[', 1)
-  gmt.desc <- lapply(gmt.list, '[', 2)
-  gmt.genes <- lapply(gmt.list,
-                      function(x){x[3:length(x)]})
-  names(gmt.desc) <- names(gmt.genes) <- gmt.names
-  return(gmt.genes)
-}
 
 
 
@@ -420,7 +195,7 @@ read_gmt <- function(fname){
 #' @param filename filename
 #' @param directory directory to save file
 #' @param title.graph title name for graph
-smdp.plot <- function(sMDP.data,filename="",directory="",title.graph=""){
+smdp_plot <- function(sample_data,filename=file_name,directory="",title=""){
 
   if (directory != ""){
     path = directory
@@ -478,64 +253,68 @@ smdp.plot <- function(sMDP.data,filename="",directory="",title.graph=""){
   }
 
 
-  Zsamples.plot <-sMDP.data[order(sMDP.data$sMDP),]
+  sample_plot <-sample_data[order(sample_data$Score),]
 
-  Zsamples.plot$Sample <- factor(Zsamples.plot$Sample, levels = Zsamples.plot$Sample[order(Zsamples.plot$sMDP)])
+  sample_plot$Sample <- factor(sample_plot$Sample, levels = sample_plot$Sample[order(sample_plot$Score)])
 
   #Plot sMDP as bar graphs
-  bp1 <- ggplot2::ggplot(data = Zsamples.plot, ggplot2::aes(y = sMDP, x = Sample, fill = Class)) +
+  plot1 <- ggplot2::ggplot(data =  sample_plot, ggplot2::aes(y = Score, x = Sample, fill = Class)) +
     ggplot2::geom_bar(stat = "identity", width = 0.8, alpha = 0.7) +
-    ggplot2::labs(title = title.graph, x = "Samples", y = "sMDP score") +
-    #  geom_hline(yintercept = MDP_cut, color = "darksalmon", linetype = "dashed") +
-    ggplot2::theme(legend.position = "bottom") +
+    ggplot2::labs(title = title, x = "Samples", y = "Sample score") +
     ggplot2::theme(axis.line = ggplot2::element_line(size = 0.5,
-                                                     linetype = "solid"), panel.grid.major = ggplot2::element_line(colour = "black",
-                                                                                                                   linetype = "blank"), panel.grid.minor = ggplot2::element_line(linetype = "blank"),
+                   linetype = "solid"), panel.grid.major = ggplot2::element_line(colour = "black",
+                   linetype = "blank"), panel.grid.minor = ggplot2::element_line(linetype = "blank"),
                    axis.title = ggplot2::element_text(size = 12),
-                   axis.text = ggplot2::element_text(size = 12, angle = 90),
+                   axis.text.x = ggplot2::element_text(size = 8, angle = 60, hjust=1),
                    plot.title = ggplot2::element_text(size = 12),
                    panel.background = ggplot2::element_rect(fill = "grey100"),
-                   legend.key = ggplot2::element_rect(fill = "grey85"),
-                   legend.background = ggplot2::element_rect(fill = "grey94"),
-                   legend.direction = "horizontal") +
+                     legend.text=ggplot2::element_text(size=8),
+                   legend.key.size =  ggplot2::unit(0.9,"line"),
+                   legend.position = c(0.23, 0.85),
+                   legend.direction = "vertical",) +
     ggplot2::theme(panel.background = ggplot2::element_rect(fill = NA, linetype = "solid"))
 
 
-  # find order
-  c=1
-  meansMDP <- vector()
-  for (j in unique(Zsamples.plot$Class)){
-    meansMDP[c] = mean(Zsamples.plot[Zsamples.plot$Class == j,"sMDP"])
-    c = c+1
+  # find means of sample scores
+ class_means<- vector()
+ for (j in unique(sample_plot$Class)){
+   class_means = c(class_means,mean(sample_plot[sample_plot$Class == j,"Score"]))
   }
-  names(meansMDP) <- unique(Zsamples.plot$Class)
-  meansMDP <- meansMDP[order(meansMDP)]
+  names( class_means) <- unique(sample_plot$Class)
+  class_means <-  class_means[order( class_means)]
 
 
   ##Boxplot of sMDP score for each class
-  bp2 <- ggplot2::ggplot(data = Zsamples.plot, ggplot2::aes(y = sMDP, x = Class, fill = Class)) +
+  plot2 <- ggplot2::ggplot(data = sample_plot, ggplot2::aes(y = Score, x = Class, fill = Class)) +
     ggplot2::geom_boxplot(outlier.shape=NA) + ggplot2::stat_summary(fun.y = mean, geom = "point", shape = 23, size = 6) +
-    ggplot2::labs(title = title.graph, x = "Groups", y = "sMDP score") +
+    ggplot2::labs(title = title, x = "Class", y = "Sample score") +
     ggplot2::theme(legend.position = "null") +
-    #geom_dotplot(binaxis='y', stackdir='center', dotsize=1) +
-    #ggplot2::geom_jitter(shape=16, position=position_jitter(0.2), ggplot2::aes(color=Class)) +
-    ggplot2::scale_x_discrete(limits=names(meansMDP)) +
+    ggplot2::scale_x_discrete(limits=names(class_means)) +
     ggplot2::geom_jitter(shape = 16, position = ggplot2::position_jitter(0.2), size=2, color = "grey10", alpha=0.7) +
     ggplot2::theme(axis.line = ggplot2::element_line(size = 0.5, linetype = "solid"),
                    panel.grid.major = ggplot2::element_line(linetype = "blank"),
                    panel.grid.minor = ggplot2::element_line(linetype = "blank"),
                    panel.background = ggplot2::element_rect(fill = "white"),
-                   axis.text = ggplot2::element_text(size = 10))
+                   axis.text.x = ggplot2::element_text(angle=60, hjust=1),
+                   legend.text=ggplot2::element_text(size=8),
+                   axis.text = ggplot2::element_text(size = 8))
 
-  smdp.name <- paste(filename,"sMDP.pdf",sep="")
+  smdp.name <- paste(filename,"samples.pdf",sep="")
   pdf(file.path(path,smdp.name))
-  multiplot(bp1,bp2,cols=2)
+  multiplot(plot1,plot2,cols=2)
   dev.off()
 
 
 }
 
 
+
+progress_bar <- function(n_steps, nth_step=0) {
+  return(function(msg){
+    nth_step <<- nth_step + 1
+    cat(nth_step, "/", n_steps, ": ", msg, "\n", sep="")
+  })
+}
 
 
 

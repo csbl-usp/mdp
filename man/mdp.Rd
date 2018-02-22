@@ -5,10 +5,11 @@
 \title{Molecular Degree of Perturbation}
 \usage{
 mdp(data, pdata, control_lab, directory = "", pathways, print = TRUE,
-  measure = "median", std = 2, save_tables = TRUE)
+  measure = "mean", std = 2, fraction_genes = 0.25, save_tables = TRUE,
+  file_name = "")
 }
 \arguments{
-\item{data}{A data.frame of gene expression data with the gene symbols in the rows, sample names in columns.}
+\item{data}{A data.frame of gene expression data with the gene symbols in the row names}
 
 \item{pdata}{A data.frame of phenodata with a column headed Class and the other headed Sample.}
 
@@ -24,10 +25,10 @@ mdp(data, pdata, control_lab, directory = "", pathways, print = TRUE,
 
 \item{std}{Set as default to 2. This controls the standard deviation threshold for the Z-score calculation. Normalised expression values less than "std" will be set to 0.}
 
-\item{save_tables}{Set as default to TRUE. Will save tables of gene and sample scores.}
+\item{save_tables}{Set as default to TRUE. Will save tables of zscore and gene and sample scores.}
 }
 \value{
-A list where [[1]] $Zscore contains a table of Z scores, [[2]] $gMDP contains gMDP scores and [[3]] $sMDP are the sampleMDP scores
+A list: [[1]] $zscore [[2]] $gene_scores  [[3]] $gene_freq [[4]] $sample_scores [[5]] perturbed_genes
 }
 \description{
 Based on the Molecular Distance to Health, this function allows the inspection of gene and sample heterogeneity in respect to a control class. When a gmt file is
@@ -36,7 +37,6 @@ submitted, the MDP is run on gene subsets. The MDP returns perturbation scores f
 \examples{
 basic usage:
 mdp(exp,pheno,"healthy_control")
-with gmt:
 mypathway <- read_gmt("gmt.file.location")
 mdp(exp,pheno,"healthy_control",print=TRUE,directory="myexp",pathways=mypathway)
 }
