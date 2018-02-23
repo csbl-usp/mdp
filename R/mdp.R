@@ -10,7 +10,7 @@
 #' @param print Set as default to TRUE if you wish graph pdfs of the geneMDP and sampleMDP values to be printed
 #' @param directory The output directory (optional)
 #' @param pathways A loaded gmt file in a list format (optional), use read_gmt("gmt.file.location") to load
-#' @param measure Set as default to "median", can be changed to "mean". This measure is used in all Z-score calculations.
+#' @param measure Set as default to "mean", can be changed to "median". This measure is used in all Z-score calculations.
 #' @param std Set as default to 2. This controls the standard deviation threshold for the Z-score calculation. Normalised expression values less than "std" will be set to 0.
 #' @param save_tables Set as default to TRUE. Will save tables of zscore and gene and sample scores.
 #' @return A list: [[1]] $zscore [[2]] $gene_scores  [[3]] $gene_freq [[4]] $sample_scores [[5]] perturbed_genes
@@ -69,8 +69,8 @@ pdata <- pdata[as.character(pdata$Sample) %in% colnames(data),]  # Only keep the
 rownames(pdata) <- pdata$Sample
 data <- data[,as.character(pdata$Sample)]  # Expression data has c(1) and samples
 
-control_samples <- pdata$Sample[pdata$Class == control_lab]
-test_samples <- pdata$Sample[pdata$Class != control_lab]
+control_samples <- as.character(pdata$Sample[pdata$Class == control_lab])
+test_samples <- as.character(pdata$Sample[pdata$Class != control_lab])
 
 
 # find mean and sd ---------------- #####

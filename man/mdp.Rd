@@ -21,7 +21,7 @@ mdp(data, pdata, control_lab, directory = "", pathways, print = TRUE,
 
 \item{print}{Set as default to TRUE if you wish graph pdfs of the geneMDP and sampleMDP values to be printed}
 
-\item{measure}{Set as default to "median", can be changed to "mean". This measure is used in all Z-score calculations.}
+\item{measure}{Set as default to "mean", can be changed to "median". This measure is used in all Z-score calculations.}
 
 \item{std}{Set as default to 2. This controls the standard deviation threshold for the Z-score calculation. Normalised expression values less than "std" will be set to 0.}
 

@@ -1,0 +1,67 @@
+---
+title: "running the mdp package"
+author: "Melissa Lever"
+date: "`r Sys.Date()`"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Vignette Title}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+## About
+
+The Molecular Degree of Perturbation allows you to quantify the heterogeneity of transcriptome data samples. The `mdp` takes data containing at least two classes (control and test) and assigns a score to all samples based on how perturbed they are compared to the controls. Gene perturbation scores are calculated for each gene within each class. 
+
+## Basic usage
+
+Load expression and pheno data:
+
+```{r}
+library(mdp)
+data(example_data) # expression data has gene names in the rows
+data(example_pheno) # pheno data needs a Sample and Class column
+
+head(example_data[,1:5]) 
+head(example_pheno) 
+```
+
+Run the `mdp`
+```{r}
+mdp.results <- mdp(data=example_data, pdata=example_pheno, control_lab = "baseline")
+```
+
+The figure sizes have been customised so that you can easily put two images side-by-side. 
+
+```{r, fig.show='hold'}
+plot(1:10)
+plot(10:1)
+```
+
+You can enable figure captions by `fig_caption: yes` in YAML:
+
+    output:
+      rmarkdown::html_vignette:
+        fig_caption: yes
+
+Then you can use the chunk option `fig.cap = "Your figure caption."` in **knitr**.
+
+## More Examples
+
+You can write math expressions, e.g. $Y = X\beta + \epsilon$, footnotes^[A footnote here.], and tables, e.g. using `knitr::kable()`.
+
+```{r, echo=FALSE, results='asis'}
+knitr::kable(head(mtcars, 10))
+```
+
+Also a quote using `>`:
+
+> "He who gives up [code] safety for [code] speed deserves neither."
+([via](https://twitter.com/hadleywickham/status/504368538874703872))
