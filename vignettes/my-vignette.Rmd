@@ -1,5 +1,5 @@
 ---
-title: "running the mdp package"
+title: "Running the mdp package"
 author: "Melissa Lever"
 date: "`r Sys.Date()`"
 output: rmarkdown::html_vignette
@@ -33,35 +33,61 @@ head(example_data[,1:5])
 head(example_pheno) 
 ```
 
-Run the `mdp`
+#### Run `mdp` and get sample scores
+
+Run the `mdp` and plot sample scores 
 ```{r}
 mdp.results <- mdp(data=example_data, pdata=example_pheno, control_lab = "baseline")
+sample_scores <- mdp.results$sample_scores
+# select sample scores that are calculated using all genes
+sample_scores <- sample_scores[sample_scores$Geneset == "allgenes",] 
+smdp_plot(sample_scores)
 ```
 
-The figure sizes have been customised so that you can easily put two images side-by-side. 
-
-```{r, fig.show='hold'}
-plot(1:10)
-plot(10:1)
+### Z-score 
+The `mdp` works by calulating the z-score relative to the control samples, taking the absolute value of this matrix and setting all vlaues below a threshold (2 as a default) to 0. Expression values that are not 0 are *perturbed*. You can access this thresholded z-score matrix by,
+```{r}
+zscore <- mdp.results$zscore
 ```
 
-You can enable figure captions by `fig_caption: yes` in YAML:
 
-    output:
-      rmarkdown::html_vignette:
-        fig_caption: yes
+### Gene scores
+For each gene in each class, a gene score is calculated, which is the average thresholded z-score value for that gene. A gene frequency is also calculated, which is the frequency that the gene is perturbed in a class.
+```{r}
+gene_scores <- mdp.results$gene_scores
+gene_freq <- mdp.results$gene_freq
 
-Then you can use the chunk option `fig.cap = "Your figure caption."` in **knitr**.
-
-## More Examples
-
-You can write math expressions, e.g. $Y = X\beta + \epsilon$, footnotes^[A footnote here.], and tables, e.g. using `knitr::kable()`.
-
-```{r, echo=FALSE, results='asis'}
-knitr::kable(head(mtcars, 10))
 ```
 
-Also a quote using `>`:
 
-> "He who gives up [code] safety for [code] speed deserves neither."
-([via](https://twitter.com/hadleywickham/status/504368538874703872))
+### Perturbed genes
+The `mdp` ranks genes according to the difference between their gene score in the test versus the control samples. The `fraction_genes` option for the `mdp` function allows you to control what fraction of these ranked genes will count as the **perturbed genes**
+```{r}
+perturbed_genes <- mdp.results$perturbed_genes
+```
+
+
+
+
+## Adding pathways
+
+
+
+
+## Further usage
+
+
+Alternatively you can calculate the thresholded z-score using `compute_zscore`,
+```{r}
+control_samples <- example_pheno[example_pheno$Class == "baseline","Sample"]
+zscore <- compute_zscore(data = example_data,control_samples = control_samples,measure = "mean",std = 2)
+```
+
+
+
+
+
+
+
+
+

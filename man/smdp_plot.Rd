@@ -4,7 +4,8 @@
 \alias{smdp_plot}
 \title{Plot sMDP scores}
 \usage{
-smdp_plot(sample_data, filename = file_name, directory = "", title = "")
+smdp_plot(sample_data, filename = file_name, directory = "", title = "",
+  print = T)
 }
 \arguments{
 \item{filename}{filename}
