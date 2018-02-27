@@ -89,13 +89,13 @@ sample_results <- compute_sample_scores(zscore,perturbed_genes,control_samples,t
 if (print == T){
 progress("printing")
 
-  smdp_plot(sample_results[sample_results$Geneset == "allgenes",],filename=paste0(file_name,"allgenes"),directory=path,title="allgenes",control_lab=control_lab)
-  smdp_plot(sample_results[sample_results$Geneset == "perturbedgenes",],filename=paste0(file_name,"perturbed"),directory=path,title="perturbedgenes",control_lab=control_lab)
+  smdp_plot(sample_results[["allgenes"]],filename=paste0(file_name,"allgenes"),directory=path,title="allgenes",control_lab=control_lab)
+  smdp_plot(sample_results[["perturbedgenes"]],filename=paste0(file_name,"perturbed"),directory=path,title="perturbedgenes",control_lab=control_lab)
 
     if (!missing(pathways)){
 
-      print_pathways(sample_results,path,file_name)
 
+      pathway_results <- pathway_summary(sample_results,path,file_name,control_samples,control_lab)
 
     }
 
@@ -111,8 +111,14 @@ if (save_tables == T){
 }
 
 # ---------------- OUTPUT ---------------- ####
-output <-list(zscore,gmdp_results,gmdp_freq_results,sample_results,perturbed_genes)
-names(output) <- c("zscore","gene_scores","gene_freq","sample_scores","perturbed_genes")
+if (missing(pathways)){
+  output <-list(zscore,gmdp_results,gmdp_freq_results,sample_results,perturbed_genes)
+  names(output) <- c("zscore","gene_scores","gene_freq","sample_scores","perturbed_genes")
+} else {
+  output <-list(zscore,gmdp_results,gmdp_freq_results,sample_results,perturbed_genes,pathway_results)
+  names(output) <- c("zscore","gene_scores","gene_freq","sample_scores","perturbed_genes","pathways")
+
+}
 
 
 
@@ -210,7 +216,7 @@ for (idx in 1:length(genesets)){
   sample_scores <- colMeans(zscore[zscore$Symbol %in% genesets[[idx]],2:ncol(zscore)]) # average gene expression for each sample
   sample_results[[idx]] <-  data.frame("Sample" = names(sample_scores),
                                        "Score" = sample_scores,
-                                       "Class" = pdata[names(sample_scores),"Class"]))
+                                       "Class" = pdata[names(sample_scores),"Class"])
 }
 names(sample_results) <- names(genesets)
 
@@ -387,30 +393,29 @@ multiplot <- function(..., plotlist=NULL, file, cols=1, layout=NULL) {
 
 #' print pathways
 #' summary plot for pathways and sample score plot of best gene set
-pathway_summary <- function(sample_results,path,file_name,control_samples){
+pathway_summary <- function(sample_results,path,file_name,control_samples,control_lab){
 
 
-  signal_noise[idx] <- ( mean(sample_scores[test_samples]) - mean(sample_scores[control_samples]) ) /  ( sd(sample_scores[test_samples]) - sd(sample_scores[control_samples]) ) # signal to noise score
+  signal_noise <- vector()
+  for (idx in 1:length(sample_results)){
 
+  sample_sub <- sample_results[[idx]]
+  control_scores <- sample_sub[sample_sub$Sample %in% control_samples,"Score"]
+  test_scores <- sample_sub[!(sample_sub$Sample %in% control_samples),"Score"]
+  signal_noise[idx] <- ( mean(test_scores) - mean(control_scores) ) /  ( sd(test_scores) + sd(control_scores) ) # signal to noise score
+  }
 
-  pathway_scores <- sample_results[,c("Geneset","Sig2noise")]
-  pathway_scores <- unique(pathway_scores)
+  pathway_scores <- data.frame("Geneset" = names(sample_results), "Sig2noise" = signal_noise)
   pathway_scores <- pathway_scores[order(-pathway_scores$Sig2noise),]
   top_pathway <- pathway_scores[1,"Geneset"]
 
-  pdf(file.path(path,"geneset_summary.pdf"))
-  test <- ggplot2::ggplot(pathway_scores, ggplot2::aes(x=Geneset, y=Sig2noise)) +  ggplot2::geom_bar(stat = "identity") +
-    ggplot2::theme_bw() + ggplot2::coord_flip() +
-    ggplot2::labs(title="Pathway summary", x="Pathways", y = "Signal to noise ratio of control versus non-control sample sMDP scores")
-  plot(test)
-  dev.off()
 
   if ( top_pathway != "allgenes" &  top_pathway != "perturbedgenes"){
-    smdp_plot(sample_results[sample_results$Geneset == top_pathway,],filename=paste0(file_name,"_",top_pathway),directory=path,title=top_pathway)
+    smdp_plot(sample_results[[top_pathway]],filename=paste0(file_name,"_",top_pathway),directory=path,title=top_pathway,print=T,control_lab)
   }
 
+  return(pathway_scores)
+
 }
-
-
 
 
