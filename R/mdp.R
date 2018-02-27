@@ -89,8 +89,8 @@ sample_results <- compute_sample_scores(zscore,perturbed_genes,control_samples,t
 if (print == T){
 progress("printing")
 
-  smdp_plot(sample_results[sample_results$Geneset == "allgenes",],filename=paste0(file_name,"allgenes"),directory=path,title="allgenes")
-  smdp_plot(sample_results[sample_results$Geneset == "perturbedgenes",],filename=paste0(file_name,"perturbed"),directory=path,title="perturbedgenes")
+  smdp_plot(sample_results[sample_results$Geneset == "allgenes",],filename=paste0(file_name,"allgenes"),directory=path,title="allgenes",control_lab=control_lab)
+  smdp_plot(sample_results[sample_results$Geneset == "perturbedgenes",],filename=paste0(file_name,"perturbed"),directory=path,title="perturbedgenes",control_lab=control_lab)
 
     if (!missing(pathways)){
 
@@ -205,22 +205,17 @@ if (!missing(pathways)){
   genesets <- c(genesets,pathways)
 }
 
-sample_results <- data.frame() # calculate sample scores for all genesets
+sample_results <- list() # calculate sample scores for all genesets
 for (idx in 1:length(genesets)){
   sample_scores <- colMeans(zscore[zscore$Symbol %in% genesets[[idx]],2:ncol(zscore)]) # average gene expression for each sample
-  signal_noise <- ( mean(sample_scores[test_samples]) - mean(sample_scores[control_samples]) ) /  ( sd(sample_scores[test_samples]) - sd(sample_scores[control_samples]) ) # signal to noise score
-  sample_results <- rbind(sample_results, data.frame("Sample" = names(sample_scores),
-                                                     "Score" = sample_scores,
-                                                     "Class" = pdata[names(sample_scores),"Class"],
-                                                     "Geneset" = names(genesets)[idx],
-                                                     "Sig2noise" = signal_noise))
+  sample_results[[idx]] <-  data.frame("Sample" = names(sample_scores),
+                                       "Score" = sample_scores,
+                                       "Class" = pdata[names(sample_scores),"Class"]))
 }
-
+names(sample_results) <- names(genesets)
 
 return(sample_results)
 }
-
-
 
 
 #' Plot sMDP scores
@@ -230,8 +225,9 @@ return(sample_results)
 #' @param sMDP.data a data.frame containing sMDP information for a geneset, with columns "Sample", "sMDP" and "Class"
 #' @param filename filename
 #' @param directory directory to save file
-#' @param title.graph title name for graph
-smdp_plot <- function(sample_data,filename=file_name,directory="",title="",print=T){
+#' @param title title name for graph
+smdp_plot <- function(sample_data,filename=file_name,directory="",title="",print=T,control_lab){
+
 
   if (directory != ""){
     path = directory
@@ -244,12 +240,32 @@ smdp_plot <- function(sample_data,filename=file_name,directory="",title="",print
   if (missing(filename)){
     print = F
   }
-
   if (length(unique(sample_data$Geneset)) > 1){
     stop("Please subset sample scores for one geneset only")
   }
-  sample_plot <-sample_data[order(sample_data$Score),]
 
+
+
+    # make color for each class, with control class as light blue
+  groups <- unique(sample_data$Class)
+  palette <- c("#86cce0","#4da566","#d67048","#d67048","#b59519","#b59519","#FDBF6F","#FF7F00","#CAB2D6","#6A3D9A")
+  if (length(groups) > length(palette)){
+        palette <- rep(palette, ceiling(length(groups)/length(palette)))
+  }
+  groups_coloured <- palette[1:length(groups)]
+
+  if (!missing(control_lab)){
+    if (!(control_lab %in% sample_data$Class)){
+        stop("Please provide control label that features in the sample data")
+    } else {
+
+   groups_reordered <- c(control_lab,as.character(groups[-grep(control_lab,groups)]))
+   names(groups_coloured) <- groups_reordered
+    }
+  }
+
+
+  sample_plot <-sample_data[order(sample_data$Score),]
   sample_plot$Sample <- factor(sample_plot$Sample, levels = sample_plot$Sample[order(sample_plot$Score)])
 
   #Plot sMDP as bar graphs
@@ -262,16 +278,19 @@ smdp_plot <- function(sample_data,filename=file_name,directory="",title="",print
                    axis.title = ggplot2::element_text(size = 12),
                    axis.text.x = ggplot2::element_text(size = 8, angle = 60, hjust=1),
                    plot.title = ggplot2::element_text(size = 12),
-                   panel.background = ggplot2::element_rect(fill = "grey100"),
-                     legend.text=ggplot2::element_text(size=8),
+                  panel.background = ggplot2::element_rect(fill = "grey100"),
+                   legend.text=ggplot2::element_text(size=8),
                    legend.key.size =  ggplot2::unit(0.9,"line"),
                    legend.position = c(0.23, 0.85),
                    legend.direction = "vertical",) +
-    ggplot2::theme(panel.background = ggplot2::element_rect(fill = NA, linetype = "solid"))
+    ggplot2::theme(panel.background = ggplot2::element_rect(fill = NA, linetype = "solid")) +
+    ggplot2::scale_fill_manual(values = groups_coloured)
+
+
 
 
   # find means of sample scores
- class_means<- vector()
+ class_means <- vector()
  for (j in unique(sample_plot$Class)){
    class_means = c(class_means,mean(sample_plot[sample_plot$Class == j,"Score"]))
   }
@@ -292,7 +311,9 @@ smdp_plot <- function(sample_data,filename=file_name,directory="",title="",print
                    panel.background = ggplot2::element_rect(fill = "white"),
                    axis.text.x = ggplot2::element_text(angle=60, hjust=1),
                    legend.text=ggplot2::element_text(size=8),
-                   axis.text = ggplot2::element_text(size = 8))
+                   axis.text = ggplot2::element_text(size = 8)) +
+    ggplot2::scale_fill_manual(values = groups_coloured)
+
 
   if (print == T){
   smdp.name <- paste(filename,"samples.pdf",sep="")
@@ -366,7 +387,11 @@ multiplot <- function(..., plotlist=NULL, file, cols=1, layout=NULL) {
 
 #' print pathways
 #' summary plot for pathways and sample score plot of best gene set
-print_pathways <- function(sample_results,path,file_name){
+pathway_summary <- function(sample_results,path,file_name,control_samples){
+
+
+  signal_noise[idx] <- ( mean(sample_scores[test_samples]) - mean(sample_scores[control_samples]) ) /  ( sd(sample_scores[test_samples]) - sd(sample_scores[control_samples]) ) # signal to noise score
+
 
   pathway_scores <- sample_results[,c("Geneset","Sig2noise")]
   pathway_scores <- unique(pathway_scores)

@@ -5,16 +5,16 @@
 \title{Plot sMDP scores}
 \usage{
 smdp_plot(sample_data, filename = file_name, directory = "", title = "",
-  print = T)
+  print = T, control_lab)
 }
 \arguments{
 \item{filename}{filename}
 
 \item{directory}{directory to save file}
 
-\item{sMDP.data}{a data.frame containing sMDP information for a geneset, with columns "Sample", "sMDP" and "Class"}
+\item{title}{title name for graph}
 
-\item{title.graph}{title name for graph}
+\item{sMDP.data}{a data.frame containing sMDP information for a geneset, with columns "Sample", "sMDP" and "Class"}
 }
 \description{
 Plots the sMDP scores for a given geneset. Takes a data.frame that contains the sMDP scores for one geneset, along with the Sample and Class information. Data.frame must have a sMDP, Sample and Class columns.

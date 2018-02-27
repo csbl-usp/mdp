@@ -12,5 +12,6 @@ Imports: ggplot2,
     grid
 Suggests: testthat,
     knitr,
-    rmarkdown
+    rmarkdown,
+    fgsea
 VignetteBuilder: knitr

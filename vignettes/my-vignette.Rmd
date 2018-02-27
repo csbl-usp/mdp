@@ -44,14 +44,14 @@ sample_scores <- sample_scores[sample_scores$Geneset == "allgenes",]
 smdp_plot(sample_scores)
 ```
 
-### Z-score 
+#### Z-score 
 The `mdp` works by calulating the z-score relative to the control samples, taking the absolute value of this matrix and setting all vlaues below a threshold (2 as a default) to 0. Expression values that are not 0 are *perturbed*. You can access this thresholded z-score matrix by,
 ```{r}
 zscore <- mdp.results$zscore
 ```
 
 
-### Gene scores
+#### Gene scores
 For each gene in each class, a gene score is calculated, which is the average thresholded z-score value for that gene. A gene frequency is also calculated, which is the frequency that the gene is perturbed in a class.
 ```{r}
 gene_scores <- mdp.results$gene_scores
@@ -60,21 +60,26 @@ gene_freq <- mdp.results$gene_freq
 ```
 
 
-### Perturbed genes
-The `mdp` ranks genes according to the difference between their gene score in the test versus the control samples. The `fraction_genes` option for the `mdp` function allows you to control what fraction of these ranked genes will count as the **perturbed genes**
+#### Perturbed genes
+The `mdp` ranks genes according to the difference between their gene score in the test versus the control samples. The `fraction_genes` option for the `mdp` function allows you to control what fraction of these ranked genes will count as the `perturbed_genes`. You can obtain a list of the perturbed genes,
 ```{r}
 perturbed_genes <- mdp.results$perturbed_genes
 ```
 
-
-
-
-## Adding pathways
-
-
-
-
 ## Further usage
+
+#### Adding pathways
+Sample scores can also be calculated using genes that are within certain genesets. These genesets will be in a list form (see example below).
+If you have a .gmt file of genesets, this can be loaded using for example the `fgsea::gmtPathways` function from the `fgsea` package.
+
+
+```{r}
+data(pathways) # expression data has gene names in the rows
+mdp.results <- mdp(data=example_data, pdata=example_pheno, control_lab = "baseline",pathways=pathways)
+
+```
+
+#### Z-score calculation options
 
 
 Alternatively you can calculate the thresholded z-score using `compute_zscore`,
