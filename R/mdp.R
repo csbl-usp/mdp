@@ -188,7 +188,7 @@ compute_perturbed_genes <- function(gmdp_results,control_lab,fraction_genes){
 
   control_idx <- grep(control_lab,names(gmdp_results))
   num_test_groups <- dim(gmdp_results)[2] - 2
-  score <- rowSums(gmdp_results[,-c(1,control_idx)]) - (num_test_groups * gmdp_results[,control_idx])
+  score <- rowSums(gmdp_results[,-c(1,control_idx), drop=FALSE]) - (num_test_groups * gmdp_results[,control_idx])
   gmdp_results <- gmdp_results[order(-score),]
   perturbed_genes <- gmdp_results$Symbol[1:round(fraction_genes*dim(gmdp_results)[1])]
 
