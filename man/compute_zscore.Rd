@@ -8,11 +8,13 @@ Plots the Z score using control samples to compute the average and standard devi
 compute_zscore(data, control_samples, measure, std)
 }
 \arguments{
-\item{data}{gene expression data with gene symbools in rows}
+\item{data}{Gene expression data with gene symbols in rows, sample names in columns}
 
-\item{control_samples}{a character vector of control sample names}
+\item{control_samples}{Character vector specifying the control sample names}
 
-\item{measure}{either "mean" or "median". mean uses mean and standard deviation. "median" uses modified z score.}
+\item{measure}{Either "mean" or "median". mean uses mean and standard deviation. "median" uses the median and the median absolute deviation to estimate the standard devation (modified z-score).}
+
+\item{std}{Set as default to 2. This controls the standard deviation threshold for the Z-score calculation. Normalised expression values less than "std" will be set to 0.}
 }
 \description{
 Computes the thresholded Z score

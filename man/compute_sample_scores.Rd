@@ -7,6 +7,19 @@
 compute_sample_scores(zscore, perturbed_genes, control_samples, test_samples,
   pathways, pdata)
 }
+\arguments{
+\item{zscore}{zscore data frame}
+
+\item{perturbed_genes}{list of pertured genes}
+
+\item{control_samples}{vector of control sample names}
+
+\item{test_samples}{vector of test sample names}
+
+\item{pathways}{list of pathways}
+
+\item{pdata}{phenotypic data with Sample and Class columns}
+}
 \description{
 Compute sample scores for each pathway
 }

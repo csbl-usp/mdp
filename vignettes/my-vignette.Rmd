@@ -18,73 +18,80 @@ knitr::opts_chunk$set(
 
 ## About
 
-The Molecular Degree of Perturbation allows you to quantify the heterogeneity of transcriptome data samples. The `mdp` takes data containing at least two classes (control and test) and assigns a score to all samples based on how perturbed they are compared to the controls. Gene perturbation scores are calculated for each gene within each class. 
+The Molecular Degree of Perturbation allows you to quantify the heterogeneity of transcriptome data samples. The `mdp` takes data containing at least two classes (control and test) and assigns a score to all samples based on how perturbed they are compared to the controls. Gene perturbation scores are calculated for each gene within each class. The algorithm is based on the Molecular Distance to Health which was first implemented in Pankla et al. 2009. 
+It expands on this algorithm by adding the options to calculate the z-score using the modified z-score (using median absolute deviation), change the z-score zeroing threshold, and look at genes that are most perturbed in the test versus control classes.
 
 ## Basic usage
 
-Load expression and pheno data:
+Load expression and pheno data and run:
 
 ```{r}
 library(mdp)
 data(example_data) # expression data has gene names in the rows
 data(example_pheno) # pheno data needs a Sample and Class column
-
-head(example_data[,1:5]) 
-head(example_pheno) 
-```
-
-#### Run `mdp` and get sample scores
-
-Run the `mdp` and plot sample scores 
-```{r}
 mdp.results <- mdp(data=example_data, pdata=example_pheno, control_lab = "baseline")
-sample_scores <- mdp.results$sample_scores
-# select sample scores that are calculated using all genes
-sample_scores <- sample_scores[sample_scores$Geneset == "allgenes",] 
-smdp_plot(sample_scores)
 ```
 
-#### Z-score 
+
+
+### Sample scores
+The sample scores can be accessed from the `sample_scores` element of the mdp results.
+```{r}
+sample_scores_list <- mdp.results$sample_scores
+sample_scores <- sample_scores_list[["perturbedgenes"]]# select sample scores calculated using the perturbed genes
+head(sample_scores)
+sample_plot(sample_scores,control_lab = "baseline", title="perturbed")
+```
+
+### Z-score 
 The `mdp` works by calulating the z-score relative to the control samples, taking the absolute value of this matrix and setting all vlaues below a threshold (2 as a default) to 0. Expression values that are not 0 are *perturbed*. You can access this thresholded z-score matrix by,
 ```{r}
 zscore <- mdp.results$zscore
 ```
 
 
-#### Gene scores
+### Gene scores
 For each gene in each class, a gene score is calculated, which is the average thresholded z-score value for that gene. A gene frequency is also calculated, which is the frequency that the gene is perturbed in a class.
 ```{r}
 gene_scores <- mdp.results$gene_scores
 gene_freq <- mdp.results$gene_freq
-
+head(gene_scores)
 ```
 
 
-#### Perturbed genes
-The `mdp` ranks genes according to the difference between their gene score in the test versus the control samples. The `fraction_genes` option for the `mdp` function allows you to control what fraction of these ranked genes will count as the `perturbed_genes`. You can obtain a list of the perturbed genes,
+### Perturbed genes
+The `mdp` ranks genes according to the difference between their gene score in the test versus the control samples. The `fraction_genes` option for the `mdp` function allows you to control what top fraction of these ranked genes will count as the `perturbed_genes`. You can obtain a list of the perturbed genes from the mdp results,
 ```{r}
 perturbed_genes <- mdp.results$perturbed_genes
 ```
 
 ## Further usage
 
-#### Adding pathways
-Sample scores can also be calculated using genes that are within certain genesets. These genesets will be in a list form (see example below).
-If you have a .gmt file of genesets, this can be loaded using for example the `fgsea::gmtPathways` function from the `fgsea` package.
+### Adding pathways
+Sample scores can also be calculated using genes that are within certain genesets. The `mdp` will accept genesets that are in the form of a list (see example below). You can read in a .gmt file of genesets using the `fgsea::gmtPathways` function from the `fgsea` package.
 
 
-```{r}
-data(pathways) # expression data has gene names in the rows
+```{r results='hide',fig.show = 'hide'}
+file_address <- system.file("extdata", "ReactomePathways.gmt", package = "mdp")
+pathways <- fgsea::gmtPathways(file_address)
 mdp.results <- mdp(data=example_data, pdata=example_pheno, control_lab = "baseline",pathways=pathways)
-
 ```
 
-#### Z-score calculation options
-
-
-Alternatively you can calculate the thresholded z-score using `compute_zscore`,
+For each pathway, the signal-to-noise ratio of the test versus control sample scores will be calculated. You can access these results in the `pathways` element of the `mdp` results.
 ```{r}
-control_samples <- example_pheno[example_pheno$Class == "baseline","Sample"]
+head(mdp.results$pathways)
+```
+
+### Z-score calculation options
+
+As a default, the `mdp` z-score normalises the expression data using the median as the averaging statistic. The standard deviation is estimated using the median absolute deviation `mad` function from the `Stats` package. If you would like to use the mean instead, select "mean". 
+```{r results='hide',fig.show = 'hide'}
+mdp.results <- mdp(data=example_data, pdata=example_pheno, control_lab = "baseline", measure = "mean")
+```
+
+You can calculate the thresholded z-score using the `compute_zscore` function. A vector of control sample names must be provided.
+```{r}
+control_samples <- example_pheno[example_pheno$Class == "baseline","Sample"] 
 zscore <- compute_zscore(data = example_data,control_samples = control_samples,measure = "mean",std = 2)
 ```
 

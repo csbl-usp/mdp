@@ -7,6 +7,15 @@ Computes gene scores for each gene within each class and perturbation freq}
 \usage{
 compute_gene_score(zscore, pdata, control_lab, score_type)
 }
+\arguments{
+\item{zscore}{zscore data frame}
+
+\item{pdata}{phenotypic data with Class and Sample columns}
+
+\item{control_lab}{character specifying control class}
+
+\item{score_type}{set to "gene_score" or "gene_freq" to compute gene scores or frequencies}
+}
 \description{
 Compute gene score
 Computes gene scores for each gene within each class and perturbation freq

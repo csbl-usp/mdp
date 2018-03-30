@@ -7,6 +7,13 @@ Find the top fraction of genes that are more perturbed in test versus controls}
 \usage{
 compute_perturbed_genes(gmdp_results, control_lab, fraction_genes)
 }
+\arguments{
+\item{gmdp_results}{results table of gene scores}
+
+\item{control_lab}{label specificying control class}
+
+\item{fraction_genes}{fraction of top perturbed genes that will make the set of perturbed genes}
+}
 \description{
 Compute perturbed genes
 Find the top fraction of genes that are more perturbed in test versus controls

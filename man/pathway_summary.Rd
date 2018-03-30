@@ -3,11 +3,22 @@
 \name{pathway_summary}
 \alias{pathway_summary}
 \title{print pathways
-summary plot for pathways and sample score plot of best gene set}
+generates a summary plot for pathways and sample score plot of best gene set}
 \usage{
 pathway_summary(sample_results, path, file_name, control_samples, control_lab)
 }
+\arguments{
+\item{sample_results}{list of sample scores for each geneset}
+
+\item{path}{directory to save images}
+
+\item{file_name}{name of saved imaged}
+
+\item{control_samples}{list of control sample names}
+
+\item{control_lab}{label that specifies control class}
+}
 \description{
 print pathways
-summary plot for pathways and sample score plot of best gene set
+generates a summary plot for pathways and sample score plot of best gene set
 }

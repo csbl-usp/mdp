@@ -1,24 +1,40 @@
 #' Molecular Degree of Perturbation
 #'
-#' Based on the Molecular Distance to Health, this function allows the inspection of gene and sample heterogeneity in respect to a control class. When a gmt file is
-#' submitted, the MDP is run on gene subsets. The MDP returns perturbation scores for each gene and each sample.
+#' Based on the Molecular Distance to Health, this function calculates scores to each sample based on their perturbation from healthy
 #'
 #' @export
 #' @param data A data.frame of gene expression data with the gene symbols in the row names
 #' @param pdata A data.frame of phenodata with a column headed Class and the other headed Sample.
-#' @param control_lab A character vector of the control class
-#' @param print Set as default to TRUE if you wish graph pdfs of the geneMDP and sampleMDP values to be printed
-#' @param directory The output directory (optional)
-#' @param pathways A loaded gmt file in a list format (optional), use read_gmt("gmt.file.location") to load
-#' @param measure Set as default to "mean", can be changed to "median". This measure is used in all Z-score calculations.
+#' @param control_lab A character vector specifying the control class
+#' @param print Set as default to TRUE if you wish pdfs of the sample scores to be saved
+#' @param directory (optional) The output directory 
+#' @param pathways (optional) A loaded geneset gmt file in a list format. You can load a gmt file using fgsea::gmtPathways("gmt.file.location") 
+#' @param measure Set to "mean" as default, can be changed to "median". "mean" - z-score is calulcated using the mean and standard deviation.
+#' "median" - z-score is calculated using median and the standard deviation is estimated using the median absolute deviation (modified z-score).
 #' @param std Set as default to 2. This controls the standard deviation threshold for the Z-score calculation. Normalised expression values less than "std" will be set to 0.
-#' @param save_tables Set as default to TRUE. Will save tables of zscore and gene and sample scores.
-#' @return A list: [[1]] $zscore [[2]] $gene_scores  [[3]] $gene_freq [[4]] $sample_scores [[5]] perturbed_genes
-#' @examples basic usage:
-#' mdp(exp,pheno,"healthy_control")
-#' mypathway <- read_gmt("gmt.file.location")
-#' mdp(exp,pheno,"healthy_control",print=TRUE,directory="myexp",pathways=mypathway)
-mdp <- function(data,pdata,control_lab,directory="",pathways,print=TRUE,measure="mean",std=2,fraction_genes = 0.25,save_tables = TRUE,file_name=""){
+#' @param fraction_genes The fraction of genes that will contribute to the list of top perturbed genes. Set as default to 0.25
+#' @param save_tables Set as default to TRUE. Tables of zscore and gene and sample scores will be saved.
+#' @param file_name (optional) Text that will be added to the saved file names
+#' @return A list: zscore, gene_scores, gene_freq, sample_scores, perturbed_genes
+#' \itemize{
+#' \item Z-score - z-score is calculated using the control samples to compute the average and the standard deviation. The absolute value of this 
+#' matrix is taken and values less than the std are set to zero. This z-score data frame is used to compute the gene and sample scores.
+#' \item Gene scores - mean z-score value for each gene in each class
+#' \item Gene frequency - frequency with which a gene has a non zero z-score value in each class
+#' \item Sample scores - list containing sample scores for different genesets. Sample scores are the sum of the z-scored gene values for each sample, averaged for the number of genes in that geneset.
+#' \item Perturbed genes - vector of the top fraction of genes that have higher gene scores in the test classes compared to the control.
+#' \item Pathways - if genesets are provided, they are ranked according to the signal-to-noise ratio of test sample scores versus control sample scores calculated using that geneset.
+#'}
+#' @examples
+#' # basic run
+#' mdp(example_data,example_pheno,"baseline")
+#' # run with pathways
+#' pathway_file <- system.file("extdata", "ReactomePathways.gmt", package = "mdp")
+#' mypathway <- fgsea::gmtPathways(pathway_file) # load a gmt file 
+#' mdp(data=example_data,pdata=example_pheno,control_lab="baseline",pathways=mypathway)
+#' @importFrom utils write.table
+#' @importFrom stats mad median sd
+mdp <- function(data,pdata,control_lab,directory="",pathways,print=TRUE,measure="median",std=2,fraction_genes = 0.25,save_tables = TRUE,file_name=""){
 
 
 # ---------- create directory ---------------------------------#######
@@ -69,7 +85,7 @@ pdata <- pdata[as.character(pdata$Sample) %in% colnames(data),]  # Only keep the
 rownames(pdata) <- pdata$Sample
 data <- data[,as.character(pdata$Sample)]  # Expression data has only samples that are in pdata
 
-control_samples <- as.character(pdata$Sample[pdata$Class == control_lab])
+control_samples <- as.character(pdata$Sample[pdata$Class == control_lab]) 
 test_samples <- as.character(pdata$Sample[pdata$Class != control_lab])
 
 
@@ -89,8 +105,8 @@ sample_results <- compute_sample_scores(zscore,perturbed_genes,control_samples,t
 if (print == T){
 progress("printing")
 
-  smdp_plot(sample_results[["allgenes"]],filename=paste0(file_name,"allgenes"),directory=path,title="allgenes",control_lab=control_lab)
-  smdp_plot(sample_results[["perturbedgenes"]],filename=paste0(file_name,"perturbed"),directory=path,title="perturbedgenes",control_lab=control_lab)
+  sample_plot(sample_results[["allgenes"]],filename=paste0(file_name,"allgenes"),directory=path,print=T,title="allgenes",control_lab=control_lab)
+  sample_plot(sample_results[["perturbedgenes"]],filename=paste0(file_name,"perturbed"),directory=path,print=F,title="perturbedgenes",control_lab=control_lab)
 
     if (!missing(pathways)){
 
@@ -129,15 +145,16 @@ return(output)
 #' Computes the thresholded Z score
 #' Plots the Z score using control samples to compute the average and standard deviation
 #' @export
-#' @param data gene expression data with gene symbools in rows
-#' @param control_samples a character vector of control sample names
-#' @param measure either "mean" or "median". mean uses mean and standard deviation. "median" uses modified z score.
+#' @param data Gene expression data with gene symbols in rows, sample names in columns
+#' @param control_samples Character vector specifying the control sample names
+#' @param measure Either "mean" or "median". mean uses mean and standard deviation. "median" uses the median and the median absolute deviation to estimate the standard devation (modified z-score).
+#' @param std Set as default to 2. This controls the standard deviation threshold for the Z-score calculation. Normalised expression values less than "std" will be set to 0.
 compute_zscore <- function(data,control_samples,measure,std){
 
   if (measure == "mean"){
     stats = data.frame("mean" = rowMeans(data[,control_samples]), "std" = apply(data[,control_samples],1,sd))
-  } else if (measure == "median"){
-    stats = data.frame("mean" = apply(data[,control_samples],1,median), "std" = apply(data[,control_samples],1,mad) * (1 / 0.6745) )
+  } else if (measure == "median"){ # use the median absolute deviation to estimate the standard deviation
+    stats = data.frame("mean" = apply(data[,control_samples],1,median), "std" = apply(data[,control_samples],1,mad) )
   } else {
     stop("Please specify either 'mean' or 'median' as a measure input")
   }
@@ -156,6 +173,10 @@ compute_zscore <- function(data,control_samples,measure,std){
 
 #' Compute gene score
 #' Computes gene scores for each gene within each class and perturbation freq
+#' @param zscore zscore data frame
+#' @param pdata phenotypic data with Class and Sample columns
+#' @param control_lab character specifying control class
+#' @param score_type set to "gene_score" or "gene_freq" to compute gene scores or frequencies
 compute_gene_score <- function(zscore,pdata,control_lab,score_type){
 
 all_groups <- unique(pdata$Class) # find all groups
@@ -167,7 +188,7 @@ for (group in all_groups){
 
   if (score_type == "gene_score"){
   gene_average <- rowMeans(zscore[,as.character(pdata$Sample[pdata$Class == group])]) # find average expression of gene in each group
-  } else {
+  } else if (score_type == "gene_freq"){
   gene_average <- rowMeans(zscore[,as.character(pdata$Sample[pdata$Class == group])] > 0)
   }
 
@@ -184,6 +205,9 @@ return(gene_results)
 
 #' Compute perturbed genes
 #' Find the top fraction of genes that are more perturbed in test versus controls
+#' @param gmdp_results results table of gene scores
+#' @param control_lab label specificying control class
+#' @param fraction_genes fraction of top perturbed genes that will make the set of perturbed genes
 compute_perturbed_genes <- function(gmdp_results,control_lab,fraction_genes){
 
   control_idx <- grep(control_lab,names(gmdp_results))
@@ -201,6 +225,12 @@ return(perturbed_genes)
 
 
 #' Compute sample scores for each pathway
+#' @param zscore zscore data frame
+#' @param perturbed_genes list of pertured genes
+#' @param control_samples vector of control sample names
+#' @param test_samples vector of test sample names
+#' @param pathways list of pathways
+#' @param pdata phenotypic data with Sample and Class columns
 compute_sample_scores <- function(zscore,perturbed_genes,control_samples,test_samples,pathways,pdata){
 
 genesets <- list() # list of all gene sets
@@ -224,15 +254,17 @@ return(sample_results)
 }
 
 
-#' Plot sMDP scores
-#'
-#' Plots the sMDP scores for a given geneset. Takes a data.frame that contains the sMDP scores for one geneset, along with the Sample and Class information. Data.frame must have a sMDP, Sample and Class columns.
+#' Plot sample scores
+#' Plots the sample scores data.frame for a given geneset. Data.frame must have Score, Sample and Class columns
 #' @export
-#' @param sMDP.data a data.frame containing sMDP information for a geneset, with columns "Sample", "sMDP" and "Class"
-#' @param filename filename
-#' @param directory directory to save file
-#' @param title title name for graph
-smdp_plot <- function(sample_data,filename=file_name,directory="",title="",print=T,control_lab){
+#' @param sample_data Sample score information for a geneset. Must have columns "Sample", "Score" and "Class"
+#' @param filename (optional) Name that will be added to the saved pdf filename
+#' @param directory (optional) directory to save file
+#' @param title (optional) Title name for graph
+#' @param print  (default T) Print plot to screen
+#' @param save (default T) Save as a pdf file 
+#' @param control_lab (optional) Specifying control_lab will set the control class as light blue as a default
+sample_plot <- function(sample_data,filename=file_name,directory="",title="",print=T,save=T,control_lab){
 
 
   if (directory != ""){
@@ -244,7 +276,7 @@ smdp_plot <- function(sample_data,filename=file_name,directory="",title="",print
     path = "."
   }
   if (missing(filename)){
-    print = F
+    file_name = ""
   }
   if (length(unique(sample_data$Geneset)) > 1){
     stop("Please subset sample scores for one geneset only")
@@ -271,17 +303,17 @@ smdp_plot <- function(sample_data,filename=file_name,directory="",title="",print
   }
 
 
-  sample_plot <-sample_data[order(sample_data$Score),]
-  sample_plot$Sample <- factor(sample_plot$Sample, levels = sample_plot$Sample[order(sample_plot$Score)])
+  sample_data <-sample_data[order(sample_data$Score),]
+  sample_data$Sample <- factor(sample_data$Sample, levels = sample_data$Sample[order(sample_data$Score)])
 
-  #Plot sMDP as bar graphs
-  plot1 <- ggplot2::ggplot(data =  sample_plot, ggplot2::aes(y = Score, x = Sample, fill = Class)) +
+  #Plot scores as bar graphs
+  plot1 <- ggplot2::ggplot(data =  sample_data, ggplot2::aes_string(y = 'Score', x = 'Sample', fill = 'Class')) +
     ggplot2::geom_bar(stat = "identity", width = 0.8, alpha = 0.7) +
     ggplot2::labs(title = title, x = "Samples", y = "Sample score") +
     ggplot2::theme(axis.line = ggplot2::element_line(size = 0.5,
                    linetype = "solid"), panel.grid.major = ggplot2::element_line(colour = "black",
                    linetype = "blank"), panel.grid.minor = ggplot2::element_line(linetype = "blank"),
-                   axis.title = ggplot2::element_text(size = 12),
+                   axis.title = ggplot2::element_text(size = 10),
                    axis.text.x = ggplot2::element_text(size = 8, angle = 60, hjust=1),
                    plot.title = ggplot2::element_text(size = 12),
                   panel.background = ggplot2::element_rect(fill = "grey100"),
@@ -297,21 +329,22 @@ smdp_plot <- function(sample_data,filename=file_name,directory="",title="",print
 
   # find means of sample scores
  class_means <- vector()
- for (j in unique(sample_plot$Class)){
-   class_means = c(class_means,mean(sample_plot[sample_plot$Class == j,"Score"]))
+ for (j in unique(sample_data$Class)){
+   class_means = c(class_means,mean(sample_data[sample_data$Class == j,"Score"]))
   }
-  names( class_means) <- unique(sample_plot$Class)
+  names( class_means) <- unique(sample_data$Class)
   class_means <-  class_means[order( class_means)]
 
 
-  ##Boxplot of sMDP score for each class
-  plot2 <- ggplot2::ggplot(data = sample_plot, ggplot2::aes(y = Score, x = Class, fill = Class)) +
+  ##Boxplot of scores
+  plot2 <- ggplot2::ggplot(data = sample_data, ggplot2::aes_string(y = 'Score', x = 'Class', fill = 'Class')) +
     ggplot2::geom_boxplot(outlier.shape=NA) + ggplot2::stat_summary(fun.y = mean, geom = "point", shape = 23, size = 6) +
     ggplot2::labs(title = title, x = "Class", y = "Sample score") +
     ggplot2::theme(legend.position = "null") +
     ggplot2::scale_x_discrete(limits=names(class_means)) +
     ggplot2::geom_jitter(shape = 16, position = ggplot2::position_jitter(0.2), size=2, color = "grey10", alpha=0.7) +
     ggplot2::theme(axis.line = ggplot2::element_line(size = 0.5, linetype = "solid"),
+                   axis.title = ggplot2::element_text(size = 10),
                    panel.grid.major = ggplot2::element_line(linetype = "blank"),
                    panel.grid.minor = ggplot2::element_line(linetype = "blank"),
                    panel.background = ggplot2::element_rect(fill = "white"),
@@ -321,14 +354,17 @@ smdp_plot <- function(sample_data,filename=file_name,directory="",title="",print
     ggplot2::scale_fill_manual(values = groups_coloured)
 
 
-  if (print == T){
-  smdp.name <- paste(filename,"samples.pdf",sep="")
-  pdf(file.path(path,smdp.name))
+  if (save == T){
+  sample_name <- paste(filename,"samples.pdf",sep="")
+  grDevices::pdf(file.path(path,sample_name))
   multiplot(plot1,plot2,cols=2)
-  dev.off()
+  grDevices::dev.off()
   }
 
-  return(plot2)
+  if (print == T){
+  multiplot(plot1,plot2,cols=2)
+    
+  }
 
 }
 
@@ -392,7 +428,12 @@ multiplot <- function(..., plotlist=NULL, file, cols=1, layout=NULL) {
 
 
 #' print pathways
-#' summary plot for pathways and sample score plot of best gene set
+#' generates a summary plot for pathways and sample score plot of best gene set
+#' @param sample_results list of sample scores for each geneset
+#' @param path directory to save images 
+#' @param file_name name of saved imaged
+#' @param control_samples list of control sample names
+#' @param control_lab label that specifies control class
 pathway_summary <- function(sample_results,path,file_name,control_samples,control_lab){
 
 
@@ -411,7 +452,7 @@ pathway_summary <- function(sample_results,path,file_name,control_samples,contro
 
 
   if ( top_pathway != "allgenes" &  top_pathway != "perturbedgenes"){
-    smdp_plot(sample_results[[top_pathway]],filename=paste0(file_name,"_",top_pathway),directory=path,title=top_pathway,print=T,control_lab)
+    sample_plot(sample_results[[top_pathway]],filename=paste0(file_name,"_",top_pathway),directory=path,title=top_pathway,print=T,control_lab)
   }
 
   return(pathway_scores)
