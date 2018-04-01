@@ -38,7 +38,8 @@ mdp.results <- mdp(data=example_data, pdata=example_pheno, control_lab = "baseli
 The sample scores can be accessed from the `sample_scores` element of the mdp results.
 ```{r}
 sample_scores_list <- mdp.results$sample_scores
-sample_scores <- sample_scores_list[["perturbedgenes"]]# select sample scores calculated using the perturbed genes
+# select sample scores calculated using the perturbed genes
+sample_scores <- sample_scores_list[["perturbedgenes"]]
 head(sample_scores)
 sample_plot(sample_scores,control_lab = "baseline", title="perturbed")
 ```
@@ -80,6 +81,9 @@ mdp.results <- mdp(data=example_data, pdata=example_pheno, control_lab = "baseli
 For each pathway, the signal-to-noise ratio of the test versus control sample scores will be calculated. You can access these results in the `pathways` element of the `mdp` results.
 ```{r}
 head(mdp.results$pathways)
+sample_scores <- mdp.results$sample_scores[["Interferon alpha/beta signaling"]]
+sample_plot(sample_scores,control_lab = "baseline", title="Interferon a/b")
+
 ```
 
 ### Z-score calculation options

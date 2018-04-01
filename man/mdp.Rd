@@ -9,49 +9,70 @@ mdp(data, pdata, control_lab, directory = "", pathways, print = TRUE,
   save_tables = TRUE, file_name = "")
 }
 \arguments{
-\item{data}{A data.frame of gene expression data with the gene symbols in the row names}
+\item{data}{A data.frame of gene expression data with the gene symbols 
+in the row names}
 
-\item{pdata}{A data.frame of phenodata with a column headed Class and the other headed Sample.}
+\item{pdata}{A data.frame of phenodata with a column headed Class and the 
+other headed Sample.}
 
 \item{control_lab}{A character vector specifying the control class}
 
 \item{directory}{(optional) The output directory}
 
-\item{pathways}{(optional) A loaded geneset gmt file in a list format. You can load a gmt file using fgsea::gmtPathways("gmt.file.location")}
+\item{pathways}{(optional) A loaded geneset gmt file in a list format.
+You can load a gmt file using fgsea::gmtPathways('gmt.file.location')}
 
-\item{print}{Set as default to TRUE if you wish pdfs of the sample scores to be saved}
+\item{print}{Set as default to TRUE if you wish pdfs of the sample scores 
+to be saved}
 
-\item{measure}{Set to "mean" as default, can be changed to "median". "mean" - z-score is calulcated using the mean and standard deviation.
-"median" - z-score is calculated using median and the standard deviation is estimated using the median absolute deviation (modified z-score).}
+\item{measure}{Set to 'mean' as default, can be changed to 'median'.
+'mean' - z-score is calulcated using the mean and standard deviation.
+'median' - z-score is calculated using median and the standard deviation
+is estimated using the median absolute deviation (modified z-score).}
 
-\item{std}{Set as default to 2. This controls the standard deviation threshold for the Z-score calculation. Normalised expression values less than "std" will be set to 0.}
+\item{std}{Set as default to 2. This controls the standard deviation threshold
+for the Z-score calculation. Normalised expression values less than 'std' 
+will be set to 0.}
 
-\item{fraction_genes}{The fraction of genes that will contribute to the list of top perturbed genes. Set as default to 0.25}
+\item{fraction_genes}{The fraction of genes that will contribute to the list
+of top perturbed genes. Set as default to 0.25}
 
-\item{save_tables}{Set as default to TRUE. Tables of zscore and gene and sample scores will be saved.}
+\item{save_tables}{Set as default to TRUE. Tables of zscore and gene and 
+sample scores will be saved.}
 
 \item{file_name}{(optional) Text that will be added to the saved file names}
 }
 \value{
 A list: zscore, gene_scores, gene_freq, sample_scores, perturbed_genes
 \itemize{
-\item Z-score - z-score is calculated using the control samples to compute the average and the standard deviation. The absolute value of this 
-matrix is taken and values less than the std are set to zero. This z-score data frame is used to compute the gene and sample scores.
+\item Z-score - z-score is calculated using the control samples to compute
+the average and the standard deviation. The absolute value of this
+matrix is taken and values less than the std are set to zero.
+This z-score data frame is used to compute the gene and sample scores.
 \item Gene scores - mean z-score value for each gene in each class
-\item Gene frequency - frequency with which a gene has a non zero z-score value in each class
-\item Sample scores - list containing sample scores for different genesets. Sample scores are the sum of the z-scored gene values for each sample, averaged for the number of genes in that geneset.
-\item Perturbed genes - vector of the top fraction of genes that have higher gene scores in the test classes compared to the control.
-\item Pathways - if genesets are provided, they are ranked according to the signal-to-noise ratio of test sample scores versus control sample scores calculated using that geneset.
+\item Gene frequency - frequency with which a gene has a non zero z-score 
+value in each class
+\item Sample scores - list containing sample scores for different genesets.
+Sample scores are the sum of the z-scored gene values for each sample,
+averaged for the number of genes in that geneset.
+\item Perturbed genes - vector of the top fraction of genes that have
+higher gene scores in the test classes compared to the control.
+\item Pathways - if genesets are provided, they are ranked according to the 
+signal-to-noise #' ratio of test sample scores versus control sample scores 
+calculated using that geneset.
 }
 }
 \description{
-Based on the Molecular Distance to Health, this function calculates scores to each sample based on their perturbation from healthy
+Based on the Molecular Distance to Health, this function calculates scores 
+to each sample based on their perturbation from healthy
 }
 \examples{
 # basic run
-mdp(example_data,example_pheno,"baseline")
+mdp(example_data,example_pheno,'baseline')
 # run with pathways
-pathway_file <- system.file("extdata", "ReactomePathways.gmt", package = "mdp")
-mypathway <- fgsea::gmtPathways(pathway_file) # load a gmt file 
-mdp(data=example_data,pdata=example_pheno,control_lab="baseline",pathways=mypathway)
+pathway_file <- system.file('extdata', 'ReactomePathways.gmt', 
+package = 'mdp')
+mypathway <- fgsea::gmtPathways(pathway_file) # load a gmt file
+mdp(data=example_data,pdata=example_pheno,control_lab='baseline',
+pathways=mypathway)
 }

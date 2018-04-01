@@ -25,3 +25,18 @@
 #' }
 #' @source \url{https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE17156}
 "example_pheno"
+
+
+#' Sample score results
+#'
+#' Resultant sample scores when the mdp is applied to example_data and example_pheno
+#'
+#' @format A data frame with 40 rows and 3 variables:
+#' \describe{
+#'   \item{Sample}{GSM identified}
+#'   \item{Score}{Sample score}
+#'   \item{Class}{Symtpomatic state}
+#'   ...
+#' }
+#'
+"sample_data"

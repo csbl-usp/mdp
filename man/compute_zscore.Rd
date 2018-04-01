@@ -3,20 +3,34 @@
 \name{compute_zscore}
 \alias{compute_zscore}
 \title{Computes the thresholded Z score
-Plots the Z score using control samples to compute the average and standard deviation}
+Plots the Z score using control samples to compute the average and standard 
+deviation}
 \usage{
 compute_zscore(data, control_samples, measure, std)
 }
 \arguments{
-\item{data}{Gene expression data with gene symbols in rows, sample names in columns}
+\item{data}{Gene expression data with gene symbols in rows, sample names 
+in columns}
 
 \item{control_samples}{Character vector specifying the control sample names}
 
-\item{measure}{Either "mean" or "median". mean uses mean and standard deviation. "median" uses the median and the median absolute deviation to estimate the standard devation (modified z-score).}
+\item{measure}{Either 'mean' or 'median'. 'mean' uses mean and standard 
+deviation. 'median' uses the median and the median absolute deviation to 
+estimate the standard devation (modified z-score).}
 
-\item{std}{Set as default to 2. This controls the standard deviation threshold for the Z-score calculation. Normalised expression values less than "std" will be set to 0.}
+\item{std}{Set as default to 2. This controls the standard deviation threshold 
+for the Z-score calculation. #' Normalised expression values less than 'std' 
+will be set to 0.}
+}
+\value{
+zscore data frame
 }
 \description{
 Computes the thresholded Z score
-Plots the Z score using control samples to compute the average and standard deviation
+Plots the Z score using control samples to compute the average and standard 
+deviation
+}
+\examples{
+control_samples <- example_pheno$Sample[example_pheno$Class == 'baseline']
+compute_zscore(example_data, control_samples,'median',2)
 }

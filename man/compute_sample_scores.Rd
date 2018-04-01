@@ -20,6 +20,9 @@ compute_sample_scores(zscore, perturbed_genes, control_samples, test_samples,
 
 \item{pdata}{phenotypic data with Sample and Class columns}
 }
+\value{
+data frame of sample scores
+}
 \description{
 Compute sample scores for each pathway
 }

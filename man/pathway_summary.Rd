@@ -18,6 +18,10 @@ pathway_summary(sample_results, path, file_name, control_samples, control_lab)
 
 \item{control_lab}{label that specifies control class}
 }
+\value{
+data frame of signal to noise ratio of control vc test sample scores 
+for each pathway
+}
 \description{
 print pathways
 generates a summary plot for pathways and sample score plot of best gene set

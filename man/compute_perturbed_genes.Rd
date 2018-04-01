@@ -3,7 +3,8 @@
 \name{compute_perturbed_genes}
 \alias{compute_perturbed_genes}
 \title{Compute perturbed genes
-Find the top fraction of genes that are more perturbed in test versus controls}
+Find the top fraction of genes that are more perturbed 
+in test versus controls}
 \usage{
 compute_perturbed_genes(gmdp_results, control_lab, fraction_genes)
 }
@@ -12,9 +13,14 @@ compute_perturbed_genes(gmdp_results, control_lab, fraction_genes)
 
 \item{control_lab}{label specificying control class}
 
-\item{fraction_genes}{fraction of top perturbed genes that will make the set of perturbed genes}
+\item{fraction_genes}{fraction of top perturbed genes that 
+will make the set of perturbed genes}
+}
+\value{
+vector of perturbed genes
 }
 \description{
 Compute perturbed genes
-Find the top fraction of genes that are more perturbed in test versus controls
+Find the top fraction of genes that are more perturbed 
+in test versus controls
 }

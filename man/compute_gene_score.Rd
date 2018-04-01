@@ -14,7 +14,11 @@ compute_gene_score(zscore, pdata, control_lab, score_type)
 
 \item{control_lab}{character specifying control class}
 
-\item{score_type}{set to "gene_score" or "gene_freq" to compute gene scores or frequencies}
+\item{score_type}{set to 'gene_score' or 'gene_freq' to compute gene scores 
+or frequencies}
+}
+\value{
+data frame of gene scores or gene frequencies
 }
 \description{
 Compute gene score

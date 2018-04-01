@@ -3,13 +3,15 @@
 \name{sample_plot}
 \alias{sample_plot}
 \title{Plot sample scores
-Plots the sample scores data.frame for a given geneset. Data.frame must have Score, Sample and Class columns}
+Plots the sample scores data.frame for a given geneset. 
+Data frame must have Score, Sample and Class columns}
 \usage{
 sample_plot(sample_data, filename = file_name, directory = "", title = "",
-  print = T, save = T, control_lab)
+  print = TRUE, display = TRUE, control_lab)
 }
 \arguments{
-\item{sample_data}{Sample score information for a geneset. Must have columns "Sample", "Score" and "Class"}
+\item{sample_data}{Sample score information for a geneset. 
+Must have columns 'Sample', 'Score' and 'Class'}
 
 \item{filename}{(optional) Name that will be added to the saved pdf filename}
 
@@ -17,13 +19,21 @@ sample_plot(sample_data, filename = file_name, directory = "", title = "",
 
 \item{title}{(optional) Title name for graph}
 
-\item{print}{(default T) Print plot to screen}
+\item{print}{(default T) Save as a pdf file}
 
-\item{save}{(default T) Save as a pdf file}
+\item{display}{(default T) Display plot}
 
-\item{control_lab}{(optional) Specifying control_lab will set the control class as light blue as a default}
+\item{control_lab}{(optional) Specifying control_lab will set the control 
+class as light blue as a default}
+}
+\value{
+generates a plot of the sample scores
 }
 \description{
 Plot sample scores
-Plots the sample scores data.frame for a given geneset. Data.frame must have Score, Sample and Class columns
+Plots the sample scores data.frame for a given geneset. 
+Data frame must have Score, Sample and Class columns
+}
+\examples{
+sample_plot(sample_data = sample_data, control_lab = 'baseline')
 }
