@@ -5,42 +5,40 @@
 \title{Molecular Degree of Perturbation}
 \usage{
 mdp(data, pdata, control_lab, directory = "", pathways, print = TRUE,
-  measure = "median", std = 2, fraction_genes = 0.25,
+  measure = c("mean", "median"), std = 2, fraction_genes = 0.25,
   save_tables = TRUE, file_name = "")
 }
 \arguments{
-\item{data}{A data.frame of gene expression data with the gene symbols 
+\item{data}{\code{data frame} of gene expression data with the gene symbols 
 in the row names}
 
-\item{pdata}{A data.frame of phenodata with a column headed Class and the 
+\item{pdata}{\code{data frame} of phenodata with a column headed Class and the 
 other headed Sample.}
 
-\item{control_lab}{A character vector specifying the control class}
+\item{control_lab}{character \code{vector} specifying the control class}
 
-\item{directory}{(optional) The output directory}
+\item{directory}{(optional) character string of output directory}
 
-\item{pathways}{(optional) A loaded geneset gmt file in a list format.
-You can load a gmt file using fgsea::gmtPathways('gmt.file.location')}
+\item{pathways}{(optional) \code{list} whose names are pathways and elements are 
+genes in the pathway. see details section for more information}
 
-\item{print}{Set as default to TRUE if you wish pdfs of the sample scores 
+\item{print}{set as default to TRUE for pdfs of the sample scores 
 to be saved}
 
-\item{measure}{Set to 'mean' as default, can be changed to 'median'.
-'mean' - z-score is calulcated using the mean and standard deviation.
-'median' - z-score is calculated using median and the standard deviation
-is estimated using the median absolute deviation (modified z-score).}
+\item{measure}{'medan' as default, can change to 'median'.
+\code{mean} will select for z-score and \code{median} will select for modified
+z-score. (see details)}
 
-\item{std}{Set as default to 2. This controls the standard deviation threshold
-for the Z-score calculation. Normalised expression values less than 'std' 
+\item{std}{\code{numeric} set as default to 2, this governs the thresholding of 
+expression data. z-scored expression values with absolute value less than 'std' 
 will be set to 0.}
 
-\item{fraction_genes}{The fraction of genes that will contribute to the list
-of top perturbed genes. Set as default to 0.25}
+\item{fraction_genes}{\code{numeric} fraction of genes that will contribute to the top perturbed genes. Set as default to 0.25}
 
 \item{save_tables}{Set as default to TRUE. Tables of zscore and gene and 
 sample scores will be saved.}
 
-\item{file_name}{(optional) Text that will be added to the saved file names}
+\item{file_name}{(optional) character string that will be added to the saved file names}
 }
 \value{
 A list: zscore, gene_scores, gene_freq, sample_scores, perturbed_genes
@@ -66,6 +64,19 @@ calculated using that geneset.
 Based on the Molecular Distance to Health, this function calculates scores 
 to each sample based on their perturbation from healthy
 }
+\section{Loading pathways}{
+
+a \code{list} of pathways can be loaded from a .gmt file using the
+\code{fgsea} function using \code{fgsea::gmtPathways('gmt.file.location')}
+}
+
+\section{Selecting mean or median}{
+
+if \code{median} is selected, the z-score will be calculated using the
+median, and the standard deviation will be estimated using the median
+ absolute deviation, utilising the \code{mad} function.
+}
+
 \examples{
 # basic run
 mdp(example_data,example_pheno,'baseline')

@@ -4,28 +4,26 @@
 #' to each sample based on their perturbation from healthy
 #'
 #' @export
-#' @param data A data.frame of gene expression data with the gene symbols 
+#' @param data \code{data frame} of gene expression data with the gene symbols 
 #' in the row names
-#' @param pdata A data.frame of phenodata with a column headed Class and the 
+#' @param pdata \code{data frame} of phenodata with a column headed Class and the 
 #' other headed Sample.
-#' @param control_lab A character vector specifying the control class
-#' @param print Set as default to TRUE if you wish pdfs of the sample scores 
+#' @param control_lab character \code{vector} specifying the control class
+#' @param print set as default to TRUE for pdfs of the sample scores 
 #' to be saved
-#' @param directory (optional) The output directory
-#' @param pathways (optional) A loaded geneset gmt file in a list format.
-#' You can load a gmt file using fgsea::gmtPathways('gmt.file.location')
-#' @param measure Set to 'mean' as default, can be changed to 'median'.
-#' 'mean' - z-score is calulcated using the mean and standard deviation.
-#' 'median' - z-score is calculated using median and the standard deviation
-#' is estimated using the median absolute deviation (modified z-score).
-#' @param std Set as default to 2. This controls the standard deviation threshold
-#' for the Z-score calculation. Normalised expression values less than 'std' 
+#' @param directory (optional) character string of output directory
+#' @param pathways (optional) \code{list} whose names are pathways and elements are 
+#' genes in the pathway. see details section for more information
+#' @param measure 'medan' as default, can change to 'median'.
+#' \code{mean} will select for z-score and \code{median} will select for modified
+#' z-score. (see details)
+#' @param std \code{numeric} set as default to 2, this governs the thresholding of 
+#' expression data. z-scored expression values with absolute value less than 'std' 
 #' will be set to 0.
-#' @param fraction_genes The fraction of genes that will contribute to the list
-#' of top perturbed genes. Set as default to 0.25
+#' @param fraction_genes \code{numeric} fraction of genes that will contribute to the top perturbed genes. Set as default to 0.25
 #' @param save_tables Set as default to TRUE. Tables of zscore and gene and 
 #' sample scores will be saved.
-#' @param file_name (optional) Text that will be added to the saved file names
+#' @param file_name (optional) character string that will be added to the saved file names
 #' @return A list: zscore, gene_scores, gene_freq, sample_scores, perturbed_genes
 #' \itemize{
 #' \item Z-score - z-score is calculated using the control samples to compute
@@ -55,9 +53,16 @@
 #' pathways=mypathway)
 #' @importFrom utils write.table
 #' @importFrom stats mad median sd
+#' @section Loading pathways:
+#' a \code{list} of pathways can be loaded from a .gmt file using the
+#' \code{fgsea} function using \code{fgsea::gmtPathways('gmt.file.location')}
+#' @section Selecting mean or median:
+#' if \code{median} is selected, the z-score will be calculated using the
+#' median, and the standard deviation will be estimated using the median
+#'  absolute deviation, utilising the \code{mad} function.
 mdp <- function(data, pdata, control_lab, directory = "", pathways, 
                 print = TRUE, 
-                measure = "median", std = 2, fraction_genes = 0.25, 
+                measure = c("mean","median"), std = 2, fraction_genes = 0.25, 
                 save_tables = TRUE, file_name = "") {
     
     
@@ -77,7 +82,15 @@ mdp <- function(data, pdata, control_lab, directory = "", pathways,
     
     if (missing(pdata)) {
         stop("Please include phenodata")
-    } else if (!("Sample" %in% names(pdata) && "Class" %in% names(pdata))) {
+    }    
+    if (missing(data)) {
+        stop("Please include expression data")
+    }
+    if (missing(control_lab)) {
+        stop("Please include control label")
+    }   
+        
+    if (!("Sample" %in% names(pdata) && "Class" %in% names(pdata))) {
         stop("Please label phenodata columns as 'Sample' and 'Class'")
     } else if (sum(pdata$Sample %in% names(data)) == 0) {
         stop("Please provide phenodata sample names that match expression data columns")
@@ -86,20 +99,33 @@ mdp <- function(data, pdata, control_lab, directory = "", pathways,
     } else if (sum(pdata$Class %in% control_lab) < 2) {
         stop("Please provide at least two control samples (around 10 is an ideal minimum)")
     }
-    if (missing(data)) {
-        stop("Please include expression data")
-    } else if (!all(apply(data[, ], 2, is.numeric))) {
+    
+    if (!all(apply(data[, ], 2, is.numeric))) {
         stop("Please provide numeric values in expression data columns")
     }
-    if (fraction_genes > 1) {
+    
+    if (!is.numeric(fraction_genes)){
+        stop("Select a numeric gene fraction of value less than 1")
+    } else if (fraction_genes > 1) {
         stop("Select a gene fraction of less than 1")
     }
+    
+    
+    if (!is.numeric(std)){
+      stop("Select a numeric standard deviation threshold")
+    }
+    
+    
     if (!missing(pathways)) {
         if (!is.list(pathways)) {
-            stop("Please provide pathways in a list format")
+            stop("Please provide pathways in a list format (see help for more details")
         }
     }
     
+    
+    
+    measure <- match.arg(measure)
+
     # Only keep the samples that have both pdata and data
     pdata <- pdata[as.character(pdata$Sample) %in% colnames(data), ]
     rownames(pdata) <- pdata$Sample
@@ -109,10 +135,10 @@ mdp <- function(data, pdata, control_lab, directory = "", pathways,
     control_samples <- as.character(pdata$Sample[pdata$Class == control_lab])
     test_samples <- as.character(pdata$Sample[pdata$Class != control_lab])
     
-    print("Calculating Z score")
+    message("Calculating Z score")
     zscore <- compute_zscore(data, control_samples, measure, std)
     
-    print("Calculating gene scores")
+    message("Calculating gene scores")
     
     # find gene scores and gene frequency for each class
     
@@ -131,7 +157,7 @@ mdp <- function(data, pdata, control_lab, directory = "", pathways,
                                                 control_lab, 
                                                 fraction_genes)
     
-    print("Calculating sample scores")
+    message("Calculating sample scores")
     # calculate sample scores
     sample_results <- compute_sample_scores(zscore, perturbed_genes, 
                                             control_samples, test_samples, 
@@ -140,7 +166,7 @@ mdp <- function(data, pdata, control_lab, directory = "", pathways,
     
     if (print == TRUE) {
         
-        print("printing")
+        message("printing")
         
         sample_plot(sample_results[["allgenes"]], 
                     filename = paste0(file_name, "allgenes"), 
@@ -237,7 +263,10 @@ mdp <- function(data, pdata, control_lab, directory = "", pathways,
 #' control_samples <- example_pheno$Sample[example_pheno$Class == 'baseline']
 #' compute_zscore(example_data, control_samples,'median',2)
 #' @return zscore data frame
-compute_zscore <- function(data, control_samples, measure, std) {
+compute_zscore <- function(data, control_samples, measure = c("mean","median"), std = 2) {
+    
+    measure <- match.arg(measure)
+    
     
     if (measure == "mean") {
         stats = data.frame(mean = rowMeans(data[, control_samples]), 
@@ -273,7 +302,9 @@ compute_zscore <- function(data, control_samples, measure, std) {
 #' @param score_type set to 'gene_score' or 'gene_freq' to compute gene scores 
 #' or frequencies
 #' @return data frame of gene scores or gene frequencies
-compute_gene_score <- function(zscore, pdata, control_lab, score_type) {
+compute_gene_score <- function(zscore, pdata, control_lab, score_type = c("gene_score","gene_freq")) {
+    
+    score_type <- match.arg(score_type)
     
     all_groups <- unique(pdata$Class)  # find all groups
     # find all_groups, without the control label
@@ -358,18 +389,14 @@ compute_sample_scores <- function(zscore, perturbed_genes, control_samples,
     }
     
     # calculate sample scores for all genesets
-    sample_results <- list()
-    
-    for (idx in 1:length(genesets)) {
-        # average gene expression for each sample for a given dataset
-        sample_scores <- colMeans(zscore[zscore$Symbol %in% genesets[[idx]], 
-                                        2:ncol(zscore)])
-        
-        sample_results[[idx]] <- data.frame(Sample = names(sample_scores), 
-                                            Score = sample_scores, 
-                                            Class = pdata[names(sample_scores),
-                                                        "Class"])
-    }
+    sample_results <- lapply(seq_along(genesets), function(idx) {
+        sample_scores <- colMeans(zscore[zscore$Symbol %in% genesets[[idx]],
+                                         2:ncol(zscore)])
+        data.frame(Sample = names(sample_scores),
+                   Score = sample_scores,
+                   Class = pdata[names(sample_scores),
+                                 "Class"])
+    })
     
     names(sample_results) <- names(genesets)
     
@@ -381,21 +408,35 @@ compute_sample_scores <- function(zscore, perturbed_genes, control_samples,
 #' Plots the sample scores data.frame for a given geneset. 
 #' Data frame must have Score, Sample and Class columns
 #' @export
-#' @param sample_data Sample score information for a geneset. 
+#' @param sample_data \code{data frame} of sample score information for a geneset. 
 #' Must have columns 'Sample', 'Score' and 'Class'
-#' @param filename (optional) Name that will be added to the saved pdf filename
-#' @param directory (optional) directory to save file
-#' @param title (optional) Title name for graph
-#' @param print (default T) Save as a pdf file
-#' @param display (default T) Display plot
-#' @param control_lab (optional) Specifying control_lab will set the control 
+#' @param filename (optional) character string that will be added to the saved pdf filename
+#' @param directory (optional) character string of directory to save file
+#' @param title (optional) character string of title name for graph
+#' @param print (default TRUE) Save as a pdf file
+#' @param display (default TRUE) Display plot
+#' @param control_lab (optional) character string Specifying control_lab will set the control 
 #' class as light blue as a default
 #' @examples
 #' sample_plot(sample_data = sample_data, control_lab = 'baseline')
 #' @return generates a plot of the sample scores
-sample_plot <- function(sample_data, filename = file_name, 
+sample_plot <- function(sample_data, filename = "", 
                         directory = "", title = "", print = TRUE, 
                         display = TRUE, control_lab) {
+    
+
+    if (!("Sample" %in% names(sample_data)) | 
+        !("Class" %in% names(sample_data)) |
+        !("Score" %in% names(sample_data))){
+        stop("Sample data must be data frame with colnames 'Class' 'Sample' 'Score'")
+    }
+    
+    
+    if (missing(control_lab)) {
+        stop("Please include control label")
+    }   
+    
+
     
     if (directory != "") {
         path = directory
@@ -405,10 +446,6 @@ sample_plot <- function(sample_data, filename = file_name,
         
     } else {
         path = "."
-    }
-    
-    if (missing(filename)) {
-        file_name = ""
     }
     
     if (length(unique(sample_data$Geneset)) > 1) {
@@ -457,7 +494,7 @@ sample_plot <- function(sample_data, filename = file_name,
                 ggplot2::labs(title = title, 
                                     x = "Samples", 
                                     y = "Sample score") + 
-                ggplot2::theme(axis.line = ggplot2::element_line(size = 0.5,                                                                 linetype = "solid"),
+                ggplot2::theme(axis.line = ggplot2::element_line(size = 0.5, linetype = "solid"),
                                 panel.grid.major = 
                                 ggplot2::element_line(colour = "black", 
                                                     linetype = "blank"),
@@ -610,23 +647,18 @@ multiplot <- function(..., plotlist = NULL,
 #' for each pathway
 pathway_summary <- function(sample_results, path, file_name, 
                             control_samples, control_lab) {
-    
     signal_noise <- vector()
     
-    for (idx in 1:length(sample_results)) {
-        
+    signal_noise <- vapply(seq_along(sample_results), function(idx) {
         sample_sub <- sample_results[[idx]]
-        
-        control_scores <- sample_sub[sample_sub$Sample %in% control_samples, 
-                                    "Score"]
-        test_scores <- sample_sub[!(sample_sub$Sample %in% control_samples), 
-                                    "Score"]
-        
-        # compute signal to noise for control vs test sample scores
-        
+        control_scores <- sample_sub[sample_sub$Sample %in% control_samples,
+                                     "Score"]
+        test_scores <- sample_sub[!(sample_sub$Sample %in% control_samples),
+                                  "Score"]
         signal_noise[idx] <- (mean(test_scores) - mean(control_scores))/
-                                (sd(test_scores) + sd(control_scores))
-    }
+            (sd(test_scores) + sd(control_scores))
+    }, numeric(1)
+    )
     
     pathway_scores <- data.frame(Geneset = names(sample_results), 
                                 Sig2noise = signal_noise)
@@ -641,7 +673,7 @@ pathway_summary <- function(sample_results, path, file_name,
     
     
     sample_plot(sample_results[[top_pathway]], 
-                filename = paste0(file_name, "_bestPathway"), 
+                filename = paste0(file_name, "bestPathway"), 
                 directory = path, title = top_pathway, 
                 print = TRUE, 
                 display = TRUE, control_lab)

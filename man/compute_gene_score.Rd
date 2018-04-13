@@ -5,7 +5,8 @@
 \title{Compute gene score
 Computes gene scores for each gene within each class and perturbation freq}
 \usage{
-compute_gene_score(zscore, pdata, control_lab, score_type)
+compute_gene_score(zscore, pdata, control_lab, score_type = c("gene_score",
+  "gene_freq"))
 }
 \arguments{
 \item{zscore}{zscore data frame}

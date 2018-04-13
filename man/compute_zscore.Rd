@@ -6,7 +6,8 @@
 Plots the Z score using control samples to compute the average and standard 
 deviation}
 \usage{
-compute_zscore(data, control_samples, measure, std)
+compute_zscore(data, control_samples, measure = c("mean", "median"),
+  std = 2)
 }
 \arguments{
 \item{data}{Gene expression data with gene symbols in rows, sample names 
