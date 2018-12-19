@@ -4,8 +4,8 @@
 \alias{compute_sample_scores}
 \title{Compute sample scores for each pathway}
 \usage{
-compute_sample_scores(zscore, perturbed_genes, control_samples, test_samples,
-  pathways, pdata)
+compute_sample_scores(zscore, perturbed_genes, control_samples,
+  test_samples, pathways, pdata)
 }
 \arguments{
 \item{zscore}{zscore data frame}
