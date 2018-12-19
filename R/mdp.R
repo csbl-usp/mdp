@@ -569,12 +569,14 @@ sample_plot <- function(sample_data, filename = "",
     if (print == TRUE) {
         sample_name <- paste(filename, "samples.pdf", sep = "")
         grDevices::pdf(file.path(path, sample_name))
-        multiplot(plot1, plot2, cols = 2)
+        require(gridExtra)
+        grid.arrange(plot1, plot2, ncol = 2)
         grDevices::dev.off()
     }
     
     if (display == TRUE) {
-        multiplot(plot1, plot2, cols = 2)
+        require(gridExtra)
+        grid.arrange(plot1, plot2, ncol = 2)
     }
     
 }
@@ -634,7 +636,7 @@ multiplot <- function(..., plotlist = NULL,
         }
     }
 }
-
+# Replaced with gridExtra::grid.arrange
 
 #' print pathways
 #' generates a summary plot for pathways and sample score plot of best gene set
