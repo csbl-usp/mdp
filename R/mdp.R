@@ -417,6 +417,7 @@ compute_sample_scores <- function(zscore, perturbed_genes, control_samples,
 #' @param display (default TRUE) Display plot
 #' @param control_lab (optional) character string Specifying control_lab will set the control
 #' class as light blue as a default
+#' @importFrom gridExtra grid.arrange
 #' @examples
 #' sample_plot(sample_data = sample_data, control_lab = 'baseline')
 #' @return generates a plot of the sample scores
@@ -568,12 +569,12 @@ sample_plot <- function(sample_data, filename = "",
     if (print == TRUE) {
         sample_name <- paste(filename, "samples.pdf", sep = "")
         grDevices::pdf(file.path(path, sample_name))
-        multiplot(plot1, plot2, cols = 2)
+        gridExtra::grid.arrange(plot1, plot2, ncol = 2)
         grDevices::dev.off()
     }
 
     if (display == TRUE) {
-        multiplot(plot1, plot2, cols = 2)
+	gridExtra::grid.arrange(plot1, plot2, ncol = 2)
     }
 
 }
@@ -633,7 +634,7 @@ multiplot <- function(..., plotlist = NULL,
         }
     }
 }
-
+# Replaced with gridExtra::grid.arrange
 
 #' print pathways
 #' generates a summary plot for pathways and sample score plot of best gene set

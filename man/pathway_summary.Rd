@@ -5,7 +5,8 @@
 \title{print pathways
 generates a summary plot for pathways and sample score plot of best gene set}
 \usage{
-pathway_summary(sample_results, path, file_name, control_samples, control_lab)
+pathway_summary(sample_results, path, file_name, control_samples,
+  control_lab)
 }
 \arguments{
 \item{sample_results}{list of sample scores for each geneset}
