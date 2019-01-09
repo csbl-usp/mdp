@@ -14,7 +14,7 @@
 #' @param directory (optional) character string of output directory
 #' @param pathways (optional) \code{list} whose names are pathways and elements are
 #' genes in the pathway. see details section for more information
-#' @param measure 'medan' as default, can change to 'median'.
+#' @param measure 'median' as default, can change to 'median'.
 #' \code{mean} will select for z-score and \code{median} will select for modified
 #' z-score. (see details)
 #' @param std \code{numeric} set as default to 2, this governs the thresholding of
