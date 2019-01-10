@@ -558,6 +558,7 @@ sample_plot <- function(sample_data, filename = "",
                                     ggplot2::element_line(linetype = "blank"),
                         panel.grid.minor =
                                     ggplot2::element_line(linetype = "blank"),
+                        plot.title = ggplot2::element_text(size = 18),
                         panel.background =
                                     ggplot2::element_rect(fill = "white"),
                         axis.text.x =
