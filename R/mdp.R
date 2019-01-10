@@ -551,7 +551,7 @@ sample_plot <- function(sample_data, filename = "",
         ggplot2::theme(axis.line = ggplot2::element_line(size = 0.5,
                                                         linetype = "solid"),
                         axis.title =
-                                    ggplot2::element_text(size = 10),
+                                    ggplot2::element_text(size = 18),
                         panel.grid.major =
                                     ggplot2::element_line(linetype = "blank"),
                         panel.grid.minor =
@@ -561,8 +561,8 @@ sample_plot <- function(sample_data, filename = "",
                         axis.text.x =
                                     ggplot2::element_text(angle = 60, hjust = 1),
                         legend.text =
-                                    ggplot2::element_text(size = 8),
-                        axis.text = ggplot2::element_text(size = 8)) +
+                                    ggplot2::element_text(size = 12),
+                        axis.text = ggplot2::element_text(size = 12)) +
         ggplot2::scale_fill_manual(values = groups_coloured)
 
 
