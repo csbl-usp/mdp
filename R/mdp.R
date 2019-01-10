@@ -500,14 +500,14 @@ sample_plot <- function(sample_data, filename = "",
                                                     linetype = "blank"),
                                 panel.grid.minor =
                                         ggplot2::element_line(linetype = "blank"),
-                                axis.title = ggplot2::element_text(size = 10),
-                                axis.text.x = ggplot2::element_text(size = 8,
+                                axis.title = ggplot2::element_text(size = 18),
+                                axis.text.x = ggplot2::element_text(size = 12,
                                                                     angle = 60,
                                                                     hjust = 1),
-                                plot.title = ggplot2::element_text(size = 12),
+                                plot.title = ggplot2::element_text(size = 18),
                                 panel.background =
                                         ggplot2::element_rect(fill = "grey100"),
-                                legend.text = ggplot2::element_text(size = 8),
+                                legend.text = ggplot2::element_text(size = 12),
                                 legend.key.size = ggplot2::unit(0.9, "line"),
                                 legend.position = c(0.23, 0.85),
                                 legend.direction = "vertical") +
