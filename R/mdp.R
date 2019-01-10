@@ -509,6 +509,7 @@ sample_plot <- function(sample_data, filename = "",
                                 panel.background =
                                         ggplot2::element_rect(fill = "grey100"),
                                 legend.text = ggplot2::element_text(size = 12),
+                                legend.title = ggplot2::element_text(size = 14),
                                 legend.key.size = ggplot2::unit(0.9, "line"),
                                 legend.position = c(0.23, 0.85),
                                 legend.direction = "vertical") +
