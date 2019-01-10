@@ -501,6 +501,7 @@ sample_plot <- function(sample_data, filename = "",
                                 panel.grid.minor =
                                         ggplot2::element_line(linetype = "blank"),
                                 axis.title = ggplot2::element_text(size = 18),
+                                axis.text = ggplot2::element_text(size = 12),
                                 axis.text.x = ggplot2::element_text(size = 12,
                                                                     angle = 60,
                                                                     hjust = 1),
