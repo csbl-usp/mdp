@@ -198,13 +198,13 @@ mdp <- function(data, pdata, control_lab, directory = "", pathways,
 
         write.table(x = zscore,
                     file = file.path(path, paste0(file_name, "zscore.tsv")),
-                    row.names = FALSE)
+                    row.names = FALSE, sep = "\t")
         write.table(x = gmdp_results,
                     file = file.path(path, paste0(file_name, "gene_scores.tsv")),
-                    row.names = FALSE)
+                    row.names = FALSE, sep = "\t")
         write.table(x = sample_results,
                     file = file.path(path, paste0(file_name, "sample_scores.tsv")),
-                    row.names = FALSE)
+                    row.names = FALSE, sep = "\t")
 
     }
 
