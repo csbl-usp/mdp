@@ -162,7 +162,7 @@ mdp <- function(data, pdata, control_lab, directory = "", pathways,
                                             pathways=NULL, pdata)
 
     message("Suggesting outliers samples")
-    sample_results <- check_outlier_samples(x = compute_zscore_classes(x = sample_results), control = control_lab,)
+    sample_results <- check_outlier_samples(x = compute_zscore_classes(x = sample_results), control = control_lab)
 
     if (print == TRUE) {
 
