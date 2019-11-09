@@ -173,7 +173,7 @@ mdp <- function(data, pdata, control_lab, directory = "", pathways,
                     directory = path,
                     print = TRUE,
                     display = TRUE,
-                    title = "allgenes",
+                    title = "All genes",
                     control_lab = control_lab)
 
         sample_plot(sample_results[["perturbedgenes"]],
@@ -181,7 +181,7 @@ mdp <- function(data, pdata, control_lab, directory = "", pathways,
                     directory = path,
                     print = TRUE,
                     display = FALSE,
-                    title = "perturbedgenes",
+                    title = paste0("Top (", fraction_genes * 100, ") perturbed genes"),
                     control_lab = control_lab)
 
         if (!missing(pathways)) {
