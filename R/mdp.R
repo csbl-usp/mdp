@@ -121,6 +121,11 @@ mdp <- function(data, pdata, control_lab, directory = "", pathways,
         }
     }
 
+    # New feature to detect problem in colnames expression data
+    if (sum(grepl("^[0-9]", colnames(data), perl = TRUE)) > 0) {
+	stop("Please provide colnames expression label starting with letter (a-A to z-Z).")
+    }
+
 
     measure <- match.arg(measure)
 
