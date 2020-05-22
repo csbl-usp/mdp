@@ -739,6 +739,7 @@ pathway_summary <- function(sample_results, path, file_name,
 
 }
 
+#' Computes the Z score of each class
 compute_zscore_classes <- function(x, colScore = 2, colClass = 3) {
   for(name in names(x)) {
     x_temp <- x[[name]]
@@ -753,6 +754,7 @@ compute_zscore_classes <- function(x, colScore = 2, colClass = 3) {
   return(x)
 }
 
+#' Check samples are potential outliers
 check_outlier_samples <- function(x, colScore = 2, colClass = 3, control = "healthy", threshold = 2) {
   for(name in names(x)) {
     x_temp <- x[[name]]
