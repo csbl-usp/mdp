@@ -684,3 +684,32 @@ pathway_summary <- function(sample_results, path, file_name,
     return(pathway_scores)
 
 }
+
+#' Computes the Z score of each class
+compute_zscore_classes <- function(x, colScore = 2, colClass = 3) {
+  for(name in names(x)) {
+    x_temp <- x[[name]]
+    mdp_score_zscore <- NULL
+    for(class in unique(sort(x_temp[, colClass]))) {
+      mdp_score_temp <- x_temp[x_temp[, colClass] == class,]
+      mdp_score_temp$zscore_class <- scale(mdp_score_temp[, colScore])
+      mdp_score_zscore <- rbind(mdp_score_zscore, mdp_score_temp)
+      x[[name]] <- mdp_score_zscore
+    }
+  }
+  return(x)
+}
+
+#' Check samples are potential outliers
+#' Calculate the zscore inside specific class to identify pontential outliers
+check_outlier_samples <- function(x, colScore = 2, colClass = 3, control = "healthy", threshold = 2) {
+  for(name in names(x)) {
+    x_temp <- x[[name]]
+    if(!control %in% unique(sort(x_temp[, colClass]))) {
+      stop("Control variable: ", control, " didn't identified like as class!")
+    }
+    x_temp$outlier <- ifelse(x_temp[, colClass] == control & x_temp$zscore_class > threshold, 1, ifelse(x_temp[, colClass] != control & x_temp$zscore_class < -threshold, 1, 0))
+    x[[name]] <- x_temp
+  }
+  return(x)
+}
