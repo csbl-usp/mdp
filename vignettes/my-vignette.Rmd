@@ -3,11 +3,19 @@ title: "Running the mdp package"
 author:
 -name: Melissa Lever
 date: "`r Sys.Date()`"
-output: rmarkdown::html_vignette
+output:
+  html_document:
+    toc: yes
+  pdf_document:
+    toc: yes
+  prettydoc::html_pretty:
+    highlight: github
+    theme: lumen
+    toc: yes
 vignette: >
   %\VignetteIndexEntry{Running the mdp package}
   %\VignetteEngine{knitr::rmarkdown}
-  %\VignetteEncoding{UTF-8}
+  \usepackage[utf8]{inputenc}
 ---
 
 ```{r setup, include = FALSE}
