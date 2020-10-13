@@ -1,6 +1,7 @@
 ---
 title: "Running the mdp package"
-author: "Melissa Lever"
+author:
+-name: Melissa Lever
 date: "`r Sys.Date()`"
 output: rmarkdown::html_vignette
 vignette: >
