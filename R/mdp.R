@@ -51,7 +51,7 @@
 #' mypathway <- fgsea::gmtPathways(pathway_file) # load a gmt file
 #' mdp(data=example_data,pdata=example_pheno,control_lab='baseline',
 #' pathways=mypathway)
-#' @importFrom utils write.table
+#' @importFrom utils write.table 
 #' @importFrom stats mad median sd
 #' @section Loading pathways:
 #' a \code{list} of pathways can be loaded from a .gmt file using the
@@ -125,6 +125,10 @@ mdp <- function(data, pdata, control_lab, directory = "", pathways,
     if (sum(grepl("^[0-9]", colnames(data), perl = TRUE)) > 0) {
 	stop("Please provide colnames expression label starting with letter (a-A to z-Z).")
     }
+<<<<<<< HEAD
+=======
+
+>>>>>>> origin/RELEASE_3_10
 
 
     measure <- match.arg(measure)
