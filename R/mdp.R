@@ -164,7 +164,7 @@ mdp <- function(data, pdata, control_lab, directory = "", pathways,
     # calculate sample scores
     sample_results <- compute_sample_scores(zscore, perturbed_genes,
                                             control_samples, test_samples,
-                                            pathways=NULL, pdata)
+                                            pathways, pdata)
 
     message("Suggesting outliers samples")
     sample_results <- check_outlier_samples(x = compute_zscore_classes(x = sample_results), control = control_lab)
@@ -592,7 +592,7 @@ sample_plot <- function(sample_data, filename = "",
                                                 x = "Class",
                                                 fill = "Class")) +
             ggplot2::geom_boxplot(outlier.shape = NA) +
-            ggplot2::stat_summary(fun.y = mean,
+            ggplot2::stat_summary(fun = mean,
                                     geom = "point",
                                     shape = 23,
                                     size = 6) +
