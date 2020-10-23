@@ -65,7 +65,6 @@ mdp <- function(data, pdata, control_lab, directory = "", pathways,
                 measure = c("mean","median"), std = 2, fraction_genes = 0.25,
                 save_tables = TRUE, file_name = "") {
 
-
     # ---------- create directory ---------------------------------#######
 
     if (directory != "") {
@@ -122,6 +121,10 @@ mdp <- function(data, pdata, control_lab, directory = "", pathways,
         }
     }
 
+    # New feature to detect problem in colnames expression data
+    if (sum(grepl("^[0-9]", colnames(data), perl = TRUE)) > 0) {
+	stop("Please provide colnames expression label starting with letter (a-A to z-Z).")
+    }
 
 
     measure <- match.arg(measure)
@@ -161,8 +164,10 @@ mdp <- function(data, pdata, control_lab, directory = "", pathways,
     # calculate sample scores
     sample_results <- compute_sample_scores(zscore, perturbed_genes,
                                             control_samples, test_samples,
-                                            pathways, pdata)
+                                            pathways=NULL, pdata)
 
+    message("Suggesting outliers samples")
+    sample_results <- check_outlier_samples(x = compute_zscore_classes(x = sample_results), control = control_lab)
 
     if (print == TRUE) {
 
@@ -173,7 +178,7 @@ mdp <- function(data, pdata, control_lab, directory = "", pathways,
                     directory = path,
                     print = TRUE,
                     display = TRUE,
-                    title = "allgenes",
+                    title = "All genes",
                     control_lab = control_lab)
 
         sample_plot(sample_results[["perturbedgenes"]],
@@ -181,7 +186,7 @@ mdp <- function(data, pdata, control_lab, directory = "", pathways,
                     directory = path,
                     print = TRUE,
                     display = FALSE,
-                    title = "perturbedgenes",
+                    title = paste0("Top (", fraction_genes * 100, ") perturbed genes"),
                     control_lab = control_lab)
 
         if (!missing(pathways)) {
@@ -198,13 +203,13 @@ mdp <- function(data, pdata, control_lab, directory = "", pathways,
 
         write.table(x = zscore,
                     file = file.path(path, paste0(file_name, "zscore.tsv")),
-                    row.names = FALSE)
+                    row.names = FALSE, sep = "\t")
         write.table(x = gmdp_results,
                     file = file.path(path, paste0(file_name, "gene_scores.tsv")),
-                    row.names = FALSE)
+                    row.names = FALSE, sep = "\t")
         write.table(x = sample_results,
                     file = file.path(path, paste0(file_name, "sample_scores.tsv")),
-                    row.names = FALSE)
+                    row.names = FALSE, sep = "\t")
 
     }
 
@@ -293,6 +298,57 @@ compute_zscore <- function(data, control_samples, measure = c("mean","median"), 
 
     return(zscore)
 }
+
+
+#' Computes the thresholded t score
+#' Plots the t score using control samples to compute the average and standard
+#' deviation divided by N samples
+#' @export
+#' @param data Gene expression data with gene symbols in rows, sample names
+#' in columns
+#' @param control_samples Character vector specifying the control sample names
+#' @param measure Either 'mean' or 'median'. 'mean' uses mean and standard
+#' deviation. 'median' uses the median and the median absolute deviation to
+#' estimate the standard devation (modified t-score).
+#' @param std Set as default to 2. This controls the standard deviation threshold
+#' for the Z-score calculation. #' Normalised expression values less than 'std'
+#' will be set to 0.
+#' @examples
+#' control_samples <- example_pheno$Sample[example_pheno$Class == 'baseline']
+#' compute_zscore(example_data, control_samples,'median',2)
+#' @return zscore data frame
+#' TODO testin tscore function to penalize small samples - Andre Nicolau
+compute_tscore <- function(data, control_samples, measure = c("mean","median"), std = 2) {
+
+  measure <- match.arg(measure)
+
+
+  if (measure == "mean") {
+    stats = data.frame(mean = rowMeans(data[, control_samples]),
+                       std = apply(data[, control_samples], 1, sd))
+
+  } else if (measure == "median") {
+    # use the median absolute deviation to estimate the standard deviation
+
+    stats = data.frame(mean = apply(data[, control_samples], 1, median),
+                       std = apply(data[, control_samples], 1, mad))
+
+  } else {
+    stop("Please specify either 'mean' or 'median' as a measure input")
+  }
+
+  # compute Z score
+  zscore <- (data - stats[, 1])/(stats[, 2])
+  rownames(zscore) <- rownames(data)
+  zscore <- zscore[!is.infinite(rowSums(zscore)), ]
+  zscore <- zscore[!is.na(rowSums(zscore)), ]
+  zscore <- abs(zscore)
+  zscore[zscore < std] <- 0
+  zscore <- data.frame(Symbol = rownames(zscore), zscore)
+
+  return(zscore)
+}
+
 
 #' Compute gene score
 #' Computes gene scores for each gene within each class and perturbation freq
@@ -390,12 +446,10 @@ compute_sample_scores <- function(zscore, perturbed_genes, control_samples,
 
     # calculate sample scores for all genesets
     sample_results <- lapply(seq_along(genesets), function(idx) {
-        sample_scores <- colMeans(zscore[zscore$Symbol %in% genesets[[idx]],
-                                         2:ncol(zscore)])
+        sample_scores <- colMeans(zscore[zscore$Symbol %in% genesets[[idx]], 2:ncol(zscore)])
         data.frame(Sample = names(sample_scores),
                    Score = sample_scores,
-                   Class = pdata[names(sample_scores),
-                                 "Class"])
+                   Class = pdata[names(sample_scores), "Class"])
     })
 
     names(sample_results) <- names(genesets)
